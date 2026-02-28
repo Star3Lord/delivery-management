@@ -13,8 +13,12 @@
   } = $props();
 
   const columnState = setColumnState({
-    order: order,
-    pinning: pinning,
+    get order() {
+      return order;
+    },
+    get pinning() {
+      return pinning;
+    },
   });
 </script>
 

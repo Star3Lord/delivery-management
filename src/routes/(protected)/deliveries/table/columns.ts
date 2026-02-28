@@ -62,7 +62,9 @@ export const columns: ColumnDef<DeliverySlip>[] = [
     enableHiding: false,
     enableResizing: false,
     enablePinning: true,
-    size: 50,
+    size: 56,
+    minSize: 56,
+    maxSize: 56,
     meta: {
       header: {
         class: 'p-0 text-xs text-neutral-900 capitalize font-normal truncate',
@@ -427,16 +429,20 @@ export const columns: ColumnDef<DeliverySlip>[] = [
     enableSorting: false,
     enableResizing: false,
     enablePinning: true,
+    size: 56,
+    minSize: 56,
+    maxSize: 56,
     meta: {
       header: {
         class: 'text-xs text-neutral-900 font-normal truncate',
         style: {
-          // width: 'auto',
-          'min-width': '15rem',
+          width: '3.5rem',
+          'min-width': '3.5rem',
+          'max-width': '3.5rem',
         },
       },
       cell: {
-        class: '',
+        class: 'px-0 text-center',
       },
     },
   },

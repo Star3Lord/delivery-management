@@ -11,10 +11,13 @@
 <Toaster />
 
 <Sidebar.Provider
+  class="h-svh overflow-hidden"
   style="--sidebar-width: calc(var(--spacing) * 72); --header-height: calc(var(--spacing) * 16);"
 >
   <AppSidebar variant="floating" collapsible="icon" />
-  <Sidebar.Inset class="w-full max-w-full overflow-hidden">
+  <Sidebar.Inset
+    class="flex min-h-0 w-full max-w-full flex-col overflow-x-hidden overflow-y-auto"
+  >
     {@render children?.()}
   </Sidebar.Inset>
 </Sidebar.Provider>

@@ -28,7 +28,10 @@
   let open = $state(false);
 
   const columnState = useColumnState();
-  const NON_HIDEABLE_COLUMNS = new Set(['table-row-select', 'table-row-actions']);
+  const NON_HIDEABLE_COLUMNS = new Set([
+    'table-row-select',
+    'table-row-actions',
+  ]);
 
   const groupedOrder = $derived.by((): GroupedColumnOrder => {
     const leftLookup: Record<string, true> = {};
@@ -187,7 +190,7 @@
           {...props}
           variant="ghost"
           size="icon"
-          class="z-[1] -m-1 ml-0 size-6 rounded-md opacity-[1.5] hover:bg-neutral-300/70 dark:hover:bg-neutral-700/70"
+          class="z-1 -m-1 ml-0 size-6 rounded-md opacity-[1.5] hover:bg-neutral-300/70 dark:hover:bg-neutral-700/70"
           {...triggerProps}
         >
           <Ellipsis class="size-2 text-muted-foreground" />
@@ -251,7 +254,7 @@
         onclick={() => columnState.moveColumnLeft(columnId)}
         disabled={!columnState.canMoveColumnLeft(columnId)}
       >
-        <ArrowLeft class="!size-3.5 stroke-[1.5]" />
+        <ArrowLeft class="size-3.5! stroke-[1.5]" />
         Move left
       </DropdownMenu.Item>
       <DropdownMenu.Item
@@ -259,7 +262,7 @@
         onclick={() => columnState.moveColumnRight(columnId)}
         disabled={!columnState.canMoveColumnRight(columnId)}
       >
-        <ArrowRight class="!size-3.5 stroke-[1.5]" />
+        <ArrowRight class="size-3.5! stroke-[1.5]" />
         Move right
       </DropdownMenu.Item>
       <!-- {#if column.getCanHide()} -->
@@ -273,7 +276,7 @@
         onclick={() => toggleColumnVisibility(columnId)}
         disabled={NON_HIDEABLE_COLUMNS.has(columnId)}
       >
-        <EyeOff class="!size-3.5 stroke-[1.5]" />
+        <EyeOff class="size-3.5! stroke-[1.5]" />
         {columnState.visibility[columnId] !== false ? 'Hide' : 'Show'}
       </DropdownMenu.Item>
       <!-- {/if} -->
@@ -306,9 +309,9 @@
               {...props}
               class={cn(
                 props?.class?.toString(),
-                'group/slot cursor-grab rounded-lg border border-transparent p-0 transition-colors duration-100 ease-in-out outline-none select-none focus-visible:outline-none active:cursor-grabbing data-[highlighted]:bg-accent/90 data-[highlighted]:disabled:bg-transparent',
+                'group/slot cursor-grab rounded-lg border border-transparent p-0 transition-colors duration-100 ease-in-out outline-none select-none focus-visible:outline-none active:cursor-grabbing data-highlighted:bg-accent/90 data-highlighted:disabled:bg-transparent',
                 !isVisible &&
-                  'not-visible cursor-not-allowed opacity-50 active:cursor-not-allowed active:opacity-50 data-[highlighted]:bg-accent/90'
+                  'not-visible cursor-not-allowed opacity-50 active:cursor-not-allowed active:opacity-50 data-highlighted:bg-accent/90'
               )}
             >
               <div
@@ -318,16 +321,12 @@
                   //   'group/hover:border-accent group-hover/slot:bg-transparent group-hover/slot:text-current'
                 )}
               >
-                <div
-                  role="button"
-                  tabindex={-1}
-                  class="focus-visible:outline"
-                >
+                <div role="button" tabindex={-1} class="focus-visible:outline">
                   <GripHorizontal
                     class="drag-handle size-3 text-muted-foreground"
                   />
                 </div>
-                <div class="flex-grow capitalize">
+                <div class="grow capitalize">
                   {columnMap.get(columnId)?.label || columnId}
                 </div>
                 <div class="relative flex items-center justify-end gap-1">
@@ -413,7 +412,7 @@
 
   .sortable-chosen {
     /* @apply focus-within:!border-transparent; */
-    @apply !border-blue-500;
+    @apply border-blue-500!;
   }
 
   .sortable-drag {

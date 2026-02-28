@@ -21,7 +21,7 @@
   // const visibility = columns.map((column) => column.id || (column?.accessorKey as string));
 </script>
 
-<div class="flex h-full w-full flex-col">
+<div class="flex min-h-0 w-full flex-1 flex-col">
   <DataTableProvider {order} {pinning}>
     <DataTable data={items} {columns} />
   </DataTableProvider>
