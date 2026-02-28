@@ -1,29 +1,23 @@
 <script lang="ts">
   import ArrowLeft from '@lucide/svelte/icons/arrow-left';
   import ArrowRight from '@lucide/svelte/icons/arrow-right';
-  import ChevronRight from '@lucide/svelte/icons/chevron-right';
   import Ellipsis from '@lucide/svelte/icons/ellipsis';
   import EyeOff from '@lucide/svelte/icons/eye-off';
   import GripHorizontal from '@lucide/svelte/icons/grip-horizontal';
   import ListRestart from '@lucide/svelte/icons/list-restart';
   import Pin from '@lucide/svelte/icons/pin';
   import Sortable from 'sortablejs';
-  // import Sortable from 'sortablejs/modular/sortable.esm.js';
-  import { tick, type Snippet } from 'svelte';
-  import { sortable } from '$lib/actions/sortable';
+  import type { Attachment } from 'svelte/attachments';
+  import type { Snippet } from 'svelte';
   import { Button } from '$lib/components/ui/button';
-  import { Checkbox } from '$lib/components/ui/checkbox';
   import * as DropdownMenu from '$lib/components/ui/dropdown-menu/index.js';
-  import * as Popover from '$lib/components/ui/popover';
-  import { Separator } from '$lib/components/ui/separator';
-  import {
-    reorder,
-    reorderMaybeWithMove,
-  } from '$lib/hooks/use-sortable.svelte';
-
+  import { reorderMaybeWithMove } from '$lib/hooks/use-sortable.svelte';
   import { cn } from '$lib/utils';
   import { columnMap } from './columns';
   import { useColumnState } from './context.svelte';
+
+  type PinnedGroup = 'left' | 'free' | 'right';
+  type GroupedColumnOrder = Record<PinnedGroup, string[]>;
 
   let {
     trigger,
@@ -34,198 +28,152 @@
   let open = $state(false);
 
   const columnState = useColumnState();
+  const NON_HIDEABLE_COLUMNS = new Set(['table-row-select', 'table-row-actions']);
 
-  const leftPinnedFilter = (id: string) =>
-    columnState.pinning.left?.includes(id);
-  // && id !== 'table-row-select';
-  const rightPinnedFilter = (id: string) =>
-    columnState.pinning.right?.includes(id);
-  // && id !== 'table-row-actions';
-  const freeFilter = (id: string) =>
-    !columnState.pinning.left?.includes(id) &&
-    !columnState.pinning.right?.includes(id);
+  const groupedOrder = $derived.by((): GroupedColumnOrder => {
+    const leftLookup: Record<string, true> = {};
+    const rightLookup: Record<string, true> = {};
 
-  const isMenuTrigger = (
-    evt: Sortable.SortableEvent & { originalEvent: Event }
-  ) => {
-    const originalEvent = evt.originalEvent;
-    const target = originalEvent?.target as HTMLElement | null;
-    const menuTriggerElement = target
-      ? Sortable.utils.closest(target, 'button')
-      : null;
-    return menuTriggerElement;
+    for (const id of columnState.pinning.left ?? []) {
+      leftLookup[id] = true;
+    }
+    for (const id of columnState.pinning.right ?? []) {
+      rightLookup[id] = true;
+    }
+
+    const left: string[] = [];
+    const free: string[] = [];
+    const right: string[] = [];
+
+    for (const id of columnState.order) {
+      if (leftLookup[id]) {
+        left.push(id);
+      } else if (rightLookup[id]) {
+        right.push(id);
+      } else {
+        free.push(id);
+      }
+    }
+
+    return {
+      left,
+      free,
+      right,
+    };
+  });
+
+  const getPinnedGroup = (value?: string): PinnedGroup => {
+    if (value === 'left' || value === 'right' || value === 'free') {
+      return value;
+    }
+    return 'free';
   };
 
-  const onSortableEnd = async (evt: Sortable.SortableEvent) => {
-    console.log({ event_type: 'onSortableEnd', evt });
-    await tick();
+  const getGroupedOrder = (): GroupedColumnOrder => ({
+    left: [...groupedOrder.left],
+    free: [...groupedOrder.free],
+    right: [...groupedOrder.right],
+  });
 
-    const isMultiDrag =
-      'oldIndicies' in evt &&
-      'newIndicies' in evt &&
-      evt.oldIndicies.length > 1;
+  const commitGroupedOrder = (groupedOrder: GroupedColumnOrder) => {
+    const nextLeft = [...groupedOrder.left];
+    const nextFree = [...groupedOrder.free];
+    const nextRight = [...groupedOrder.right];
+    const nextOrder = [...nextLeft, ...nextFree, ...nextRight];
+    columnState.setOrderAndPinning(nextOrder, {
+      left: nextLeft,
+      right: nextRight,
+    });
+  };
 
-    const from = evt.from.dataset.pinnedGroup;
-    const to = evt.to.dataset.pinnedGroup;
+  const toggleColumnVisibility = (columnId: string) => {
+    const visible = columnState.visibility[columnId] !== false;
+    columnState.toggleVisibility(columnId, !visible);
+  };
 
-    const leftPinnedOrder = columnState.order.filter(leftPinnedFilter);
-    const rightPinnedOrder = columnState.order.filter(rightPinnedFilter);
-    const freeOrder = columnState.order.filter(freeFilter);
+  const onSortableEnd = (evt: Sortable.SortableEvent) => {
+    if (evt.oldIndex === undefined || evt.newIndex === undefined) {
+      return;
+    }
 
-    const fromOrder =
-      from === 'left'
-        ? leftPinnedOrder
-        : from === 'right'
-          ? rightPinnedOrder
-          : freeOrder;
+    const from = getPinnedGroup(evt.from.dataset.pinnedGroup);
+    const to = getPinnedGroup(evt.to.dataset.pinnedGroup);
+    if (from !== to) {
+      return;
+    }
 
-    const toOrder =
-      to === 'left'
-        ? leftPinnedOrder
-        : to === 'right'
-          ? rightPinnedOrder
-          : freeOrder;
-
-    const [newFromOrder, newToOrder] = reorderMaybeWithMove(
+    const groupedOrder = getGroupedOrder();
+    const [nextGroup] = reorderMaybeWithMove(
       evt,
-      fromOrder,
-      toOrder,
-      from === to
+      groupedOrder[from],
+      groupedOrder[from],
+      true
     );
 
-    const newLeftPinnedOrder =
-      from === 'left'
-        ? newFromOrder
-        : to === 'left'
-          ? newToOrder
-          : leftPinnedOrder;
-    const newRightPinnedOrder =
-      from === 'right'
-        ? newFromOrder
-        : to === 'right'
-          ? newToOrder
-          : rightPinnedOrder;
-    const newFreeOrder =
-      from === 'free' ? newFromOrder : to === 'free' ? newToOrder : freeOrder;
-
-    const newOrder = [
-      ...newLeftPinnedOrder,
-      ...newFreeOrder,
-      ...newRightPinnedOrder,
-    ];
-
-    await new Promise((resolve) => setTimeout(resolve, 100));
-    await tick();
-
-    columnState.setPinning({
-      left: newLeftPinnedOrder,
-      right: newRightPinnedOrder,
-    });
-    columnState.order = newOrder;
+    groupedOrder[from] = nextGroup;
+    commitGroupedOrder(groupedOrder);
   };
 
-  let sortableOptions: Sortable.Options = {
-    group: {
-      name: 'free',
-      // pull: 'clone',
-      put: ['left-pinned', 'right-pinned'],
-    },
-    delay: 100,
-    // delayOnTouchOnly: true,
+  const sharedSortableOptions: Omit<Sortable.Options, 'group'> = {
     sort: true,
     direction: 'vertical',
-    animation: 200,
-    // easing: "cubic-bezier(1, 0, 0, 1)",
+    animation: 140,
     swapThreshold: 0.75,
-    // handle: '.drag-handle',
     filter: '.not-visible',
-
-    // draggable: '.draggable',
-
-    multiDrag: true,
-    multiDragKey: 'Meta',
-    selectedClass: 'sortable-selected',
-    // avoidImplicitDeselect: true,
-
     ghostClass: 'sortable-ghost',
     chosenClass: 'sortable-chosen',
     dragClass: 'sortable-drag',
-
     revertOnSpill: true,
     fallbackTolerance: 3,
-
-    onSort(event) {
-      console.log({ event_type: 'onSort', event });
-    },
-    onChoose(event) {
-      console.log({ event_type: 'onChoose', event });
-    },
     onEnd: onSortableEnd,
-    onSelect(evt) {
-      console.log({ event_type: 'onSelect', evt });
-      const shouldDeselect = isMenuTrigger(
-        evt as typeof evt & { originalEvent: Event }
-      );
-      if (shouldDeselect) {
-        Sortable.utils.deselect(evt.item);
-      } else {
-        // add data-selected attribute to the item
-        evt.item.dataset.selected = 'true';
-      }
-    },
-    onDeselect(evt) {
-      console.log({ event_type: 'onDeselect', evt });
-      const shouldSelect = isMenuTrigger(
-        evt as typeof evt & { originalEvent: Event }
-      );
-      if (shouldSelect) {
-        Sortable.utils.select(evt.item);
-      } else {
-        delete evt.item.dataset.selected;
-      }
+  };
+
+  const freeSortableOptions: Sortable.Options = {
+    ...sharedSortableOptions,
+    group: {
+      name: 'free',
+      pull: false,
+      put: false,
     },
   };
 
-  let leftPinnedSortableOptions: Sortable.Options = {
+  const leftPinnedSortableOptions: Sortable.Options = {
+    ...sharedSortableOptions,
     group: {
       name: 'left-pinned',
-      // pull: 'clone',
-      put: ['free', 'right-pinned'],
+      pull: false,
+      put: false,
     },
   };
 
-  let rightPinnedSortableOptions: Sortable.Options = {
+  const rightPinnedSortableOptions: Sortable.Options = {
+    ...sharedSortableOptions,
     group: {
       name: 'right-pinned',
-      // pull: 'clone',
-      put: ['left-pinned', 'free'],
+      pull: false,
+      put: false,
     },
   };
 
-  const handleColumnSelect = (event: Event) => {};
-
-  const moveRight = () => {
-    console.log('move right');
+  const createSortableAttachment = (
+    options: Sortable.Options
+  ): Attachment<HTMLElement> => {
+    return (node) => {
+      const sortableInstance = Sortable.create(node, options);
+      return () => sortableInstance.destroy();
+    };
   };
 
-  const moveLeft = () => {
-    console.log('move left');
-  };
+  const freeSortableAttachment = createSortableAttachment(freeSortableOptions);
+  const leftPinnedSortableAttachment = createSortableAttachment(
+    leftPinnedSortableOptions
+  );
+  const rightPinnedSortableAttachment = createSortableAttachment(
+    rightPinnedSortableOptions
+  );
 
-  const handleColumnSelectUsingCheckbox = (event: Event) => {
-    if ('checked' in event) {
-      const isChecked = event.checked as boolean;
-      const target = event.target as HTMLInputElement;
-      const columnItem = target.closest('li');
-      if (columnItem) {
-        if (isChecked) {
-          Sortable.utils.select(columnItem);
-        } else {
-          Sortable.utils.deselect(columnItem);
-        }
-      }
-    }
-  };
+  // Normalize any stale persisted state on init.
+  columnState.setOrderAndPinning(columnState.order, columnState.pinning);
 </script>
 
 {#snippet columnOptionsMenu({
@@ -239,7 +187,7 @@
           {...props}
           variant="ghost"
           size="icon"
-          class="z-[1] -m-1 ml-0 size-6 rounded-md opacity-[1.5] group-data-[selected]/slot:hidden hover:bg-neutral-300/70 dark:hover:bg-neutral-700/70"
+          class="z-[1] -m-1 ml-0 size-6 rounded-md opacity-[1.5] hover:bg-neutral-300/70 dark:hover:bg-neutral-700/70"
           {...triggerProps}
         >
           <Ellipsis class="size-2 text-muted-foreground" />
@@ -262,10 +210,10 @@
         </DropdownMenu.Item>
       </DropdownMenu.Group>
       <DropdownMenu.Separator /> -->
-      {#if columnState.pinning.left?.includes(columnId) === true}
+      {#if groupedOrder.left.includes(columnId)}
         <DropdownMenu.Item
           class="gap-1.5 text-[0.825rem] font-medium"
-          onclick={moveLeft}
+          onclick={() => columnState.pinColumn(columnId, false)}
         >
           <Pin class="size-3.5 rotate-90 text-muted-foreground" />
           Unpin from left
@@ -273,17 +221,17 @@
       {:else}
         <DropdownMenu.Item
           class="gap-1.5 text-[0.825rem] font-medium"
-          onclick={moveLeft}
+          onclick={() => columnState.pinColumn(columnId, 'left')}
         >
           <Pin class="size-3.5 rotate-90 text-muted-foreground" />
           Pin to left
         </DropdownMenu.Item>
       {/if}
 
-      {#if columnState.pinning.right?.includes(columnId) === true}
+      {#if groupedOrder.right.includes(columnId)}
         <DropdownMenu.Item
           class="gap-1.5 text-[0.825rem] font-medium"
-          onclick={moveRight}
+          onclick={() => columnState.pinColumn(columnId, false)}
         >
           <Pin class="size-3.5 -rotate-90 text-muted-foreground" />
           Unpin from right
@@ -291,7 +239,7 @@
       {:else}
         <DropdownMenu.Item
           class="gap-1.5 text-[0.825rem] font-medium"
-          onclick={moveLeft}
+          onclick={() => columnState.pinColumn(columnId, 'right')}
         >
           <Pin class="size-3.5 -rotate-90 text-muted-foreground" />
           Pin to right
@@ -300,14 +248,16 @@
 
       <DropdownMenu.Item
         class="gap-1.5 text-[0.825rem] font-medium"
-        onclick={moveLeft}
+        onclick={() => columnState.moveColumnLeft(columnId)}
+        disabled={!columnState.canMoveColumnLeft(columnId)}
       >
         <ArrowLeft class="!size-3.5 stroke-[1.5]" />
         Move left
       </DropdownMenu.Item>
       <DropdownMenu.Item
         class="gap-1.5 text-[0.825rem] font-medium"
-        onclick={moveRight}
+        onclick={() => columnState.moveColumnRight(columnId)}
+        disabled={!columnState.canMoveColumnRight(columnId)}
       >
         <ArrowRight class="!size-3.5 stroke-[1.5]" />
         Move right
@@ -318,9 +268,13 @@
           class="gap-1.5 text-[0.825rem] font-medium"
           onclick={() => column.toggleVisibility(false)}
         > -->
-      <DropdownMenu.Item class="gap-1.5 text-[0.825rem] font-medium">
+      <DropdownMenu.Item
+        class="gap-1.5 text-[0.825rem] font-medium"
+        onclick={() => toggleColumnVisibility(columnId)}
+        disabled={NON_HIDEABLE_COLUMNS.has(columnId)}
+      >
         <EyeOff class="!size-3.5 stroke-[1.5]" />
-        Hide
+        {columnState.visibility[columnId] !== false ? 'Hide' : 'Show'}
       </DropdownMenu.Item>
       <!-- {/if} -->
     </DropdownMenu.Content>
@@ -328,11 +282,11 @@
 {/snippet}
 
 {#snippet sortableColumnOrderList({
-  sortableOptions,
+  sortableAttachment,
   items,
   pinned,
 }: {
-  sortableOptions: Sortable.Options;
+  sortableAttachment: Attachment<HTMLElement>;
   items: string[];
   pinned?: 'left' | 'right';
 })}
@@ -340,11 +294,11 @@
     <ul
       class="flex flex-col gap-0"
       data-pinned-group={pinned ? pinned : 'free'}
-      use:sortable={sortableOptions}
+      {@attach sortableAttachment}
     >
-      {#each items as columnId, i (columnId)}
+      {#each items as columnId (columnId)}
         {@const isVisible = columnState.visibility[columnId] !== false}
-        <DropdownMenu.Item closeOnSelect={false} onSelect={handleColumnSelect}>
+        <DropdownMenu.Item closeOnSelect={false}>
           {#snippet child({ props })}
             <li
               id="draggable-{columnId}"
@@ -367,16 +321,12 @@
                 <div
                   role="button"
                   tabindex={-1}
-                  class="group-hover/slot:opacity-0 focus-visible:outline"
+                  class="focus-visible:outline"
                 >
                   <GripHorizontal
                     class="drag-handle size-3 text-muted-foreground"
                   />
                 </div>
-                <Checkbox
-                  onchange={handleColumnSelectUsingCheckbox}
-                  class="absolute top-1/2 left-0 z-0 size-3.5 translate-x-1.5 -translate-y-1/2 rounded-sm transition-[opacity,transform] duration-300 ease-in-out group-hover/slot:!translate-x-1.5 group-hover/slot:!opacity-100 group-[:not([data-selected])]/slot:-translate-x-0.5 group-[:not([data-selected])]/slot:opacity-0"
-                />
                 <div class="flex-grow capitalize">
                   {columnMap.get(columnId)?.label || columnId}
                 </div>
@@ -393,10 +343,6 @@
                     columnId,
                     disabled: false, //!isVisible,
                   })}
-                  <!-- <Checkbox
-                    checked
-                    class="absolute z-0 top-1/2 right-0 -translate-y-1/2 group-[:not([data-selected])]/slot:translate-x-2 translate-x-0 size-3.5 rounded-sm group-[:not([data-selected])]/slot:opacity-0 transition-[opacity,transform] duration-300 ease-in-out"
-                  /> -->
                 </div>
               </div>
             </li>
@@ -439,41 +385,31 @@
         <ListRestart class="size-3" />
       </Button>
     </div>
-    {#key columnState.order}
-      {#if columnState.pinning.left}
-        {@render sortableColumnOrderList({
-          sortableOptions: { ...sortableOptions, ...leftPinnedSortableOptions },
-          items: columnState.order.filter(leftPinnedFilter),
-          pinned: 'left',
-        })}
-        <DropdownMenu.Separator class="my-1 bg-border" />
-      {/if}
+    {#if groupedOrder.left.length > 0}
       {@render sortableColumnOrderList({
-        sortableOptions,
-        items: columnState.order.filter(freeFilter),
+        sortableAttachment: leftPinnedSortableAttachment,
+        items: groupedOrder.left,
+        pinned: 'left',
       })}
-      {#if columnState.pinning.right}
-        <DropdownMenu.Separator class="my-1 bg-border" />
-        {@render sortableColumnOrderList({
-          sortableOptions: {
-            ...sortableOptions,
-            ...rightPinnedSortableOptions,
-          },
-          items: columnState.order.filter(rightPinnedFilter),
-          pinned: 'right',
-        })}
-      {/if}
-    {/key}
+      <DropdownMenu.Separator class="my-1 bg-border" />
+    {/if}
+    {@render sortableColumnOrderList({
+      sortableAttachment: freeSortableAttachment,
+      items: groupedOrder.free,
+    })}
+    {#if groupedOrder.right.length > 0}
+      <DropdownMenu.Separator class="my-1 bg-border" />
+      {@render sortableColumnOrderList({
+        sortableAttachment: rightPinnedSortableAttachment,
+        items: groupedOrder.right,
+        pinned: 'right',
+      })}
+    {/if}
   </DropdownMenu.Content>
 </DropdownMenu.Root>
 
 <style lang="postcss">
   @reference "../../../../routes/layout.css";
-
-  .sortable-selected {
-    /* @apply bg-sky-300/5; */
-    @apply bg-accent;
-  }
 
   .sortable-chosen {
     /* @apply focus-within:!border-transparent; */

@@ -7,6 +7,7 @@
   import ArrowRight from '@lucide/svelte/icons/arrow-right';
   import ArrowUpDown from '@lucide/svelte/icons/arrow-up-down';
   import EyeOff from '@lucide/svelte/icons/eye-off';
+  import Pin from '@lucide/svelte/icons/pin';
   import { Button } from '$lib/components/ui/button/index.js';
   import * as DropdownMenu from '$lib/components/ui/dropdown-menu/index.js';
   import { cn } from '$lib/utils.js';
@@ -32,23 +33,23 @@
   let columnState = useColumnState();
 
   const moveLeft = () => {
-    const newOrder = [...columnState.order];
-    const index = newOrder.indexOf(column.id);
-    if (index > 0) {
-      newOrder.splice(index, 1);
-      newOrder.splice(index - 1, 0, column.id);
-    }
-    columnState.setOrder(newOrder);
+    columnState.moveColumnLeft(column.id);
   };
 
   const moveRight = () => {
-    const newOrder = [...columnState.order];
-    const index = newOrder.indexOf(column.id);
-    if (index < newOrder.length - 1) {
-      newOrder.splice(index, 1);
-      newOrder.splice(index + 1, 0, column.id);
-    }
-    columnState.setOrder(newOrder);
+    columnState.moveColumnRight(column.id);
+  };
+
+  const pinLeft = () => {
+    columnState.pinColumn(column.id, 'left');
+  };
+
+  const pinRight = () => {
+    columnState.pinColumn(column.id, 'right');
+  };
+
+  const unpin = () => {
+    columnState.pinColumn(column.id, false);
   };
 </script>
 
@@ -106,21 +107,21 @@
           class="gap-1.5 text-[0.825rem] font-medium"
           onclick={() => column.toggleSorting(false, true)}
         >
-          <ArrowUp class="!size-3.5 stroke-[1.5]" />
+          <ArrowUp class="size-3.5! stroke-[1.5]" />
           Sort ascending
         </DropdownMenu.Item>
         <DropdownMenu.Item
           class="gap-1.5 text-[0.825rem] font-medium"
           onclick={() => column.toggleSorting(true, true)}
         >
-          <ArrowDown class="!size-3.5 stroke-[1.5]" />
+          <ArrowDown class="size-3.5! stroke-[1.5]" />
           Sort descending
         </DropdownMenu.Item>
         <DropdownMenu.Item
           class="gap-1.5 text-[0.825rem] font-medium"
           onclick={() => column.clearSorting()}
         >
-          <ArrowUpDown class="!size-3.5 stroke-[1.5]" />
+          <ArrowUpDown class="size-3.5! stroke-[1.5]" />
           Reset sort
         </DropdownMenu.Item>
       </DropdownMenu.Group>
@@ -128,20 +129,62 @@
     {#if column.getCanSort()}
       <DropdownMenu.Separator class="bg-border" />
     {/if}
+    {#if column.getCanPin()}
+      <DropdownMenu.Group>
+        {#if column.getIsPinned() === 'left'}
+          <DropdownMenu.Item
+            class="gap-1.5 text-[0.825rem] font-medium"
+            onclick={unpin}
+          >
+            <Pin class="size-3.5 rotate-90 text-muted-foreground" />
+            Unpin from left
+          </DropdownMenu.Item>
+        {:else}
+          <DropdownMenu.Item
+            class="gap-1.5 text-[0.825rem] font-medium"
+            onclick={pinLeft}
+          >
+            <Pin class="size-3.5 rotate-90 text-muted-foreground" />
+            Pin to left
+          </DropdownMenu.Item>
+        {/if}
+
+        {#if column.getIsPinned() === 'right'}
+          <DropdownMenu.Item
+            class="gap-1.5 text-[0.825rem] font-medium"
+            onclick={unpin}
+          >
+            <Pin class="size-3.5 -rotate-90 text-muted-foreground" />
+            Unpin from right
+          </DropdownMenu.Item>
+        {:else}
+          <DropdownMenu.Item
+            class="gap-1.5 text-[0.825rem] font-medium"
+            onclick={pinRight}
+          >
+            <Pin class="size-3.5 -rotate-90 text-muted-foreground" />
+            Pin to right
+          </DropdownMenu.Item>
+        {/if}
+      </DropdownMenu.Group>
+      <DropdownMenu.Separator class="bg-border" />
+    {/if}
     <DropdownMenu.Group>
       <!-- <DropdownMenu.GroupHeading>Order</DropdownMenu.GroupHeading> -->
       <DropdownMenu.Item
         class="gap-1.5 text-[0.825rem] font-medium"
         onclick={moveLeft}
+        disabled={!columnState.canMoveColumnLeft(column.id)}
       >
-        <ArrowLeft class="!size-3.5 stroke-[1.5]" />
+        <ArrowLeft class="size-3.5! stroke-[1.5]" />
         Move left
       </DropdownMenu.Item>
       <DropdownMenu.Item
         class="gap-1.5 text-[0.825rem] font-medium"
         onclick={moveRight}
+        disabled={!columnState.canMoveColumnRight(column.id)}
       >
-        <ArrowRight class="!size-3.5 stroke-[1.5]" />
+        <ArrowRight class="size-3.5! stroke-[1.5]" />
         Move right
       </DropdownMenu.Item>
     </DropdownMenu.Group>
@@ -151,7 +194,7 @@
         class="gap-1.5 text-[0.825rem] font-medium"
         onclick={() => column.toggleVisibility(false)}
       >
-        <EyeOff class="!size-3.5 stroke-[1.5]" />
+        <EyeOff class="size-3.5! stroke-[1.5]" />
         Hide
       </DropdownMenu.Item>
     {/if}
