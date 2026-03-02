@@ -13,25 +13,24 @@
   import * as DropdownMenu from '$lib/components/ui/dropdown-menu/index.js';
   import { reorderMaybeWithMove } from '$lib/hooks/use-sortable.svelte';
   import { cn } from '$lib/utils';
-  import { columnMap } from './columns';
-  import { useColumnState } from './context.svelte';
+  import { useColumnState, type ColumnLabelMap } from './context.svelte';
 
   type PinnedGroup = 'left' | 'free' | 'right';
   type GroupedColumnOrder = Record<PinnedGroup, string[]>;
 
   let {
     trigger,
+    column_labels,
+    non_hideable_columns = new Set(['table-row-select', 'table-row-actions']),
   }: {
     trigger?: Snippet<[{ props: Record<string, unknown> }]>;
+    column_labels?: ColumnLabelMap;
+    non_hideable_columns?: Set<string>;
   } = $props();
 
   let open = $state(false);
 
   const columnState = useColumnState();
-  const NON_HIDEABLE_COLUMNS = new Set([
-    'table-row-select',
-    'table-row-actions',
-  ]);
 
   const groupedOrder = $derived.by((): GroupedColumnOrder => {
     const leftLookup: Record<string, true> = {};
@@ -64,6 +63,10 @@
       right,
     };
   });
+
+  const getColumnLabel = (columnId: string): string => {
+    return column_labels?.get(columnId)?.label ?? columnId;
+  };
 
   const getPinnedGroup = (value?: string): PinnedGroup => {
     if (value === 'left' || value === 'right' || value === 'free') {
@@ -133,29 +136,17 @@
 
   const freeSortableOptions: Sortable.Options = {
     ...sharedSortableOptions,
-    group: {
-      name: 'free',
-      pull: false,
-      put: false,
-    },
+    group: { name: 'free', pull: false, put: false },
   };
 
   const leftPinnedSortableOptions: Sortable.Options = {
     ...sharedSortableOptions,
-    group: {
-      name: 'left-pinned',
-      pull: false,
-      put: false,
-    },
+    group: { name: 'left-pinned', pull: false, put: false },
   };
 
   const rightPinnedSortableOptions: Sortable.Options = {
     ...sharedSortableOptions,
-    group: {
-      name: 'right-pinned',
-      pull: false,
-      put: false,
-    },
+    group: { name: 'right-pinned', pull: false, put: false },
   };
 
   const createSortableAttachment = (
@@ -175,7 +166,6 @@
     rightPinnedSortableOptions
   );
 
-  // Normalize any stale persisted state on init.
   columnState.setOrderAndPinning(columnState.order, columnState.pinning);
 </script>
 
@@ -193,7 +183,7 @@
           class="z-1 -m-1 ml-0 size-6 rounded-md opacity-[1.5] hover:bg-neutral-300/70 dark:hover:bg-neutral-700/70"
           {...triggerProps}
         >
-          <Ellipsis class="size-2 text-muted-foreground" />
+          <Ellipsis class="size-3 text-muted-foreground" />
         </Button>
       {/snippet}
     </DropdownMenu.Trigger>
@@ -204,15 +194,6 @@
       sideOffset={0}
       alignOffset={0}
     >
-      <!-- <DropdownMenu.Group>
-        <DropdownMenu.GroupHeading>Actions</DropdownMenu.GroupHeading>
-        <DropdownMenu.Item
-          onclick={() => navigator.clipboard.writeText(columnId)}
-        >
-          Copy payment ID
-        </DropdownMenu.Item>
-      </DropdownMenu.Group>
-      <DropdownMenu.Separator /> -->
       {#if groupedOrder.left.includes(columnId)}
         <DropdownMenu.Item
           class="gap-1.5 text-[0.825rem] font-medium"
@@ -265,21 +246,15 @@
         <ArrowRight class="size-3.5! stroke-[1.5]" />
         Move right
       </DropdownMenu.Item>
-      <!-- {#if column.getCanHide()} -->
       <DropdownMenu.Separator />
-      <!-- <DropdownMenu.Item
-          class="gap-1.5 text-[0.825rem] font-medium"
-          onclick={() => column.toggleVisibility(false)}
-        > -->
       <DropdownMenu.Item
         class="gap-1.5 text-[0.825rem] font-medium"
         onclick={() => toggleColumnVisibility(columnId)}
-        disabled={NON_HIDEABLE_COLUMNS.has(columnId)}
+        disabled={non_hideable_columns.has(columnId)}
       >
         <EyeOff class="size-3.5! stroke-[1.5]" />
         {columnState.visibility[columnId] !== false ? 'Hide' : 'Show'}
       </DropdownMenu.Item>
-      <!-- {/if} -->
     </DropdownMenu.Content>
   </DropdownMenu.Root>
 {/snippet}
@@ -317,8 +292,6 @@
               <div
                 class={cn(
                   'relative flex w-full items-center gap-2 rounded-lg border border-transparent px-2 py-1 text-sm transition-colors duration-200 ease-in-out'
-                  // !isVisible &&
-                  //   'group/hover:border-accent group-hover/slot:bg-transparent group-hover/slot:text-current'
                 )}
               >
                 <div role="button" tabindex={-1} class="focus-visible:outline">
@@ -327,7 +300,7 @@
                   />
                 </div>
                 <div class="grow capitalize">
-                  {columnMap.get(columnId)?.label || columnId}
+                  {getColumnLabel(columnId)}
                 </div>
                 <div class="relative flex items-center justify-end gap-1">
                   {#if !isVisible}
@@ -340,7 +313,7 @@
                   {/if}
                   {@render columnOptionsMenu({
                     columnId,
-                    disabled: false, //!isVisible,
+                    disabled: false,
                   })}
                 </div>
               </div>
@@ -378,9 +351,6 @@
         }}
         tabindex={-1}
       >
-        <!-- {#snippet tooltipContent()}
-          Reset
-        {/snippet} -->
         <ListRestart class="size-3" />
       </Button>
     </div>
@@ -411,16 +381,13 @@
   @reference "../../../../routes/layout.css";
 
   .sortable-chosen {
-    /* @apply focus-within:!border-transparent; */
     @apply border-blue-500!;
   }
 
   .sortable-drag {
-    /* @apply border-blue-500 bg-red-500 opacity-100; */
   }
 
   .sortable-ghost {
-    /* @apply bg-blue-500/80 text-white; */
     @apply opacity-0;
   }
 </style>

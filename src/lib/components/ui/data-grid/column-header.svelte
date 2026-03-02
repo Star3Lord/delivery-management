@@ -53,15 +53,6 @@
   };
 </script>
 
-<!-- <Button
-  {variant}
-  class={cn('w-full rounded-none px-4 justify-start', className)}
-  {...restProps}
->
-  {label}
-  <ArrowUpDown class="ml-2" />
-</Button> -->
-
 <DropdownMenu.Root>
   <DropdownMenu.Trigger>
     {#snippet child({ props })}
@@ -102,7 +93,6 @@
   >
     {#if column.getCanSort()}
       <DropdownMenu.Group>
-        <!-- <DropdownMenu.GroupHeading>Sort</DropdownMenu.GroupHeading> -->
         <DropdownMenu.Item
           class="gap-1.5 text-[0.825rem] font-medium"
           onclick={() => column.toggleSorting(false, true)}
@@ -170,7 +160,6 @@
       <DropdownMenu.Separator class="bg-border" />
     {/if}
     <DropdownMenu.Group>
-      <!-- <DropdownMenu.GroupHeading>Order</DropdownMenu.GroupHeading> -->
       <DropdownMenu.Item
         class="gap-1.5 text-[0.825rem] font-medium"
         onclick={moveLeft}

@@ -18,8 +18,9 @@ export const get_customer = query(
     const customer_obj = await db
       .select()
       .from(customer)
-      .where(eq(customer.id, id));
-    return customer_obj;
+      .where(eq(customer.id, id))
+      .limit(1);
+    return customer_obj.at(0);
   }
 );
 

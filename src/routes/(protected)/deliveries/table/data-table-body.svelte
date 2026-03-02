@@ -24,8 +24,8 @@
   import { Input } from '$lib/components/ui/input/index.js';
   import * as Table from '$lib/components/ui/table/index.js';
   import { cn, createStyle } from '$lib/utils.js';
-  import ColumnResizer from './data-table-column-resizer.svelte';
-  import { useColumnState } from './context.svelte';
+  import ColumnResizer from '$lib/components/ui/data-grid/column-resizer.svelte';
+  import { useColumnState } from '$lib/components/ui/data-grid/context.svelte';
 
   type DataTableProps<TData, TValue> = {
     data: TData[];

@@ -1,18 +1,17 @@
 <script lang="ts" generics="TData, TValue">
+  import type { Snippet } from 'svelte';
   import {
     getCoreRowModel,
     getFilteredRowModel,
-    getPaginationRowModel,
     getSortedRowModel,
     type Column,
     type ColumnDef,
     type ColumnFiltersState,
     type ColumnSizingState,
     type ColumnSizingInfoState,
-    type PaginationState,
     type RowSelectionState,
     type SortingState,
-    type VisibilityState,
+    type Table,
     type TableOptions,
   } from '@tanstack/table-core';
   import ColumnsThree from '@lucide/svelte/icons/columns-3';
@@ -21,22 +20,31 @@
     createSvelteTable,
     FlexRender,
   } from '$lib/components/ui/data-table/index.js';
-  import { ScrollArea } from '$lib/components/ui/scroll-area/index.js';
-  import { Input } from '$lib/components/ui/input/index.js';
-  import * as Table from '$lib/components/ui/table/index.js';
+  import * as TableUI from '$lib/components/ui/table/index.js';
   import { cn, createStyle } from '$lib/utils.js';
-  import ColumnResizer from './data-table-column-resizer.svelte';
-  import ViewSettingsOld from './data-table-column-view-settings-old.svelte';
-  import ViewSettings from './data-table-column-view-settings.svelte';
-  import ColumnVisibility from './data-table-column-visibility.svelte';
-  import { useColumnState } from './context.svelte';
+  import ColumnResizer from './column-resizer.svelte';
+  import ViewSettings from './view-settings.svelte';
+  import { useColumnState, type ColumnLabelMap } from './context.svelte';
 
-  type DataTableProps<TData, TValue> = {
+  type DataGridProps<TData, TValue> = {
     data: TData[];
     columns: ColumnDef<TData, TValue>[];
+    column_labels?: ColumnLabelMap;
+    toolbar?: Snippet<[{ table: Table<TData> }]>;
+    actions?: Snippet<[{ table: Table<TData> }]>;
+    footer?: Snippet<[{ table: Table<TData> }]>;
+    after_rows?: Snippet;
   };
 
-  let { data, columns }: DataTableProps<TData, TValue> = $props();
+  let {
+    data,
+    columns,
+    column_labels,
+    toolbar,
+    actions,
+    footer,
+    after_rows,
+  }: DataGridProps<TData, TValue> = $props();
 
   let columnFilters = $state<ColumnFiltersState>([]);
   let columnSizing = $state<ColumnSizingState>({});
@@ -48,11 +56,9 @@
     startOffset: null,
     startSize: null,
   });
-  // let columnVisibility = $state<VisibilityState>({});
-  let pagination = $state<PaginationState>({ pageIndex: 0, pageSize: 10 });
   let rowSelection = $state<RowSelectionState>({});
   let sorting = $state<SortingState>([]);
-  const headerScrollerId = 'deliveries-table-header-scroller';
+  let headerScrollerEl = $state<HTMLDivElement>();
   const columnResizeMode: TableOptions<TData>['columnResizeMode'] = 'onChange';
 
   let columnState = useColumnState();
@@ -70,7 +76,6 @@
       enableResizing: true,
       enablePinning: true,
     },
-    // getRo/
     getCoreRowModel: getCoreRowModel(),
     manualFiltering: true,
     getFilteredRowModel: getFilteredRowModel(),
@@ -81,18 +86,8 @@
         columnFilters = updater;
       }
     },
-    // getPaginationRowModel: getPaginationRowModel(),
-    // onPaginationChange: (updater) => {
-    //   if (typeof updater === 'function') {
-    //     pagination = updater(pagination);
-    //   } else {
-    //     pagination = updater;
-    //   }
-    // },
-    // manualSorting: true,
     enableMultiSort: true,
     enableSortingRemoval: false,
-    // isMultiSortEvent: (e) => true,
     getSortedRowModel: getSortedRowModel(),
     onSortingChange: (updater) => {
       if (typeof updater === 'function') {
@@ -103,20 +98,16 @@
     },
     onColumnOrderChange: (updater) => {
       if (typeof updater === 'function') {
-        // columnOrder = updater(columnOrder);
         columnState.setOrder(updater(columnState.order));
       } else {
-        // columnOrder = updater;
         columnState.setOrder(updater);
       }
     },
     enableColumnPinning: true,
     onColumnPinningChange: (updater) => {
       if (typeof updater === 'function') {
-        // columnPinning = updater(columnPinning);
         columnState.setPinning(updater(columnState.pinning));
       } else {
-        // columnPinning = updater;
         columnState.setPinning(updater);
       }
     },
@@ -138,10 +129,8 @@
     },
     onColumnVisibilityChange: (updater) => {
       if (typeof updater === 'function') {
-        // columnVisibility = updater(columnVisibility);
         columnState.setVisibility(updater(columnState.visibility));
       } else {
-        // columnVisibility = updater;
         columnState.setVisibility(updater);
       }
     },
@@ -171,9 +160,6 @@
       get columnVisibility() {
         return columnState.visibility;
       },
-      // get pagination() {
-      //   return pagination;
-      // },
       get rowSelection() {
         return rowSelection;
       },
@@ -285,40 +271,27 @@
 
   const syncHeaderScroll = (event: Event) => {
     const bodyElement = event.currentTarget as HTMLDivElement | null;
-    const headerElement = document.getElementById(
-      headerScrollerId
-    ) as HTMLDivElement | null;
-    if (!headerElement || !bodyElement) {
+    if (!headerScrollerEl || !bodyElement) {
       return;
     }
-
-    headerElement.scrollLeft = bodyElement.scrollLeft;
+    headerScrollerEl.scrollLeft = bodyElement.scrollLeft;
   };
 </script>
 
 <div class="flex w-full flex-col">
   <div class="sticky top-0 z-40 bg-background">
-    <div class="border-b border-border px-6 py-4">
+    <div class="border-b border-border px-6 py-3">
       <div class="flex items-center gap-2">
-        <Input
-          placeholder="Filter slip number..."
-          value={(table.getColumn('external_id')?.getFilterValue() as string) ??
-            ''}
-          onchange={(e) => {
-            table
-              .getColumn('external_id')
-              ?.setFilterValue(e.currentTarget.value);
-          }}
-          oninput={(e) => {
-            table
-              .getColumn('external_id')
-              ?.setFilterValue(e.currentTarget.value);
-          }}
-          class="max-w-sm"
-        />
-        <ViewSettings>
+        {#if toolbar}
+          {@render toolbar({ table })}
+        {/if}
+        <ViewSettings {column_labels}>
           {#snippet trigger({ props })}
-            <Button {...props} variant="outline" class="ml-auto h-8">
+            <Button
+              {...props}
+              variant="outline"
+              class={cn('h-8', !toolbar && 'ml-auto')}
+            >
               <ColumnsThree class="aspect-video size-3" />
               <span class="text-xs leading-3 font-semibold tracking-tight">
                 View Settings
@@ -326,28 +299,17 @@
             </Button>
           {/snippet}
         </ViewSettings>
-        <ViewSettingsOld>
-          {#snippet trigger({ props })}
-            <Button {...props} variant="outline" class="h-8">
-              <ColumnsThree class="aspect-video size-3" />
-              <span class="text-xs leading-3 font-semibold tracking-tight">
-                View Settings (old)
-              </span>
-            </Button>
-          {/snippet}
-        </ViewSettingsOld>
-        <ColumnVisibility columns={table.getAllColumns()}>
-          {#snippet trigger({ props })}
-            <Button {...props} variant="outline" class="h-8">
-              <span class="text-xs font-semibold">Columns</span>
-            </Button>
-          {/snippet}
-        </ColumnVisibility>
+        {#if actions}
+          {@render actions({ table })}
+        {/if}
       </div>
     </div>
 
-    <div id={headerScrollerId} class="overflow-x-hidden border-b border-border">
-      <Table.Root
+    <div
+      bind:this={headerScrollerEl}
+      class="overflow-x-hidden border-b border-border"
+    >
+      <TableUI.Root
         class="table-fixed border-separate border-spacing-0 border-border"
         style={createStyle({
           ...columnSizeVars,
@@ -366,9 +328,9 @@
           {/each}
         </colgroup>
 
-        <Table.Header class="border-border bg-(--table-header-bg)">
+        <TableUI.Header class="border-border bg-(--table-header-bg)">
           {#each table.getHeaderGroups() as headerGroup (headerGroup.id)}
-            <Table.Row class="group/row relative border-b-0 border-border">
+            <TableUI.Row class="group/row relative border-b-0 border-border">
               {#each headerGroup.headers as header (header.id)}
                 {@const meta = header.column.columnDef?.meta as Record<
                   string,
@@ -385,7 +347,7 @@
                   header.column
                 )}
                 {@const headerBorderClass = getRightBorderClass(header.column)}
-                <Table.Head
+                <TableUI.Head
                   class={cn(
                     'h-8 truncate border-t-0 border-b border-border bg-clip-border! px-0 text-left align-middle text-xs font-normal text-muted-foreground capitalize [&:has([role=checkbox])]:pr-0',
                     headerLeftBorderClass,
@@ -408,18 +370,17 @@
                     />
                   {/if}
                   <ColumnResizer {header} {table} />
-                </Table.Head>
+                </TableUI.Head>
               {/each}
-            </Table.Row>
+            </TableUI.Row>
           {/each}
-        </Table.Header>
-      </Table.Root>
+        </TableUI.Header>
+      </TableUI.Root>
     </div>
   </div>
 
-  <!-- <ScrollArea class="h-[200px] w-[350px] rounded-md border p-4"> -->
   <div onscroll={syncHeaderScroll} class="relative overflow-x-auto">
-    <Table.Root
+    <TableUI.Root
       class="table-fixed border-separate border-spacing-0 border-border"
       style={createStyle({
         ...columnSizeVars,
@@ -438,9 +399,9 @@
         {/each}
       </colgroup>
       {#key table.getState().columnSizingInfo.isResizingColumn}
-        <Table.Body class="border-border">
+        <TableUI.Body class="border-border">
           {#each table.getRowModel().rows as row (row.id)}
-            <Table.Row
+            <TableUI.Row
               class="group/row relative transition-colors [--row-bg:var(--table-body-bg)] hover:[--row-bg:var(--table-body-bg-hover)] data-[state=selected]:[--row-bg:var(--table-body-bg-selected)]"
               data-state={row.getIsSelected() && 'selected'}
             >
@@ -458,7 +419,7 @@
                   | undefined}
                 {@const cellLeftBorderClass = getLeftBorderClass(cell.column)}
                 {@const cellBorderClass = getRightBorderClass(cell.column)}
-                <Table.Cell
+                <TableUI.Cell
                   class={cn(
                     'min-h-8 truncate border-b border-border bg-clip-border! px-3 py-1 align-middle text-sm font-medium text-ellipsis [&:has([role=checkbox])]:pr-0',
                     cellLeftBorderClass,
@@ -477,47 +438,38 @@
                     content={cell.column.columnDef.cell}
                     context={cell.getContext()}
                   />
-                </Table.Cell>
+                </TableUI.Cell>
               {/each}
-            </Table.Row>
+            </TableUI.Row>
           {:else}
-            <Table.Row>
-              <Table.Cell
+            <TableUI.Row>
+              <TableUI.Cell
                 colspan={columns.length}
                 class="h-24 border-b text-center"
               >
                 No results.
-              </Table.Cell>
-            </Table.Row>
+              </TableUI.Cell>
+            </TableUI.Row>
           {/each}
-        </Table.Body>
+        </TableUI.Body>
       {/key}
-    </Table.Root>
+    </TableUI.Root>
   </div>
-  <!-- </ScrollArea> -->
 
-  <div
-    class="sticky bottom-0 z-30 -mt-px flex items-center justify-end space-x-2 border-t border-border bg-background px-6 py-4"
-  >
-    <div class="flex-1 text-sm text-muted-foreground">
-      {table.getFilteredSelectedRowModel().rows.length} of
-      {table.getFilteredRowModel().rows.length} row(s) selected.
+  {#if after_rows}
+    {@render after_rows()}
+  {/if}
+
+  {#if footer}
+    {@render footer({ table })}
+  {:else}
+    <div
+      class="sticky bottom-0 z-30 -mt-px flex items-center justify-end space-x-2 border-t border-border bg-background px-6 py-4"
+    >
+      <div class="flex-1 text-sm text-muted-foreground">
+        {table.getFilteredSelectedRowModel().rows.length} of
+        {table.getFilteredRowModel().rows.length} row(s) selected.
+      </div>
     </div>
-    <Button
-      variant="outline"
-      size="sm"
-      onclick={() => table.previousPage()}
-      disabled={!table.getCanPreviousPage()}
-    >
-      Previous
-    </Button>
-    <Button
-      variant="outline"
-      size="sm"
-      onclick={() => table.nextPage()}
-      disabled={!table.getCanNextPage()}
-    >
-      Next
-    </Button>
-  </div>
+  {/if}
 </div>

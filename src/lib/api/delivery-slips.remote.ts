@@ -17,6 +17,10 @@ import {
   paginate_rows,
 } from '$lib/api/shared';
 
+export type DeliverySlip = Awaited<
+  ReturnType<typeof list_delivery_slips>
+>['items'][number];
+
 export const list_delivery_slips = query(list_query_validator, async (args) => {
   const backward = is_backward(args);
 
@@ -37,7 +41,7 @@ export const list_delivery_slips = query(list_query_validator, async (args) => {
 
   if (args.limit) qb.limit(args.limit + 1);
 
-  console.log(qb.toSQL());
+  // console.log(qb.toSQL());
 
   const rows = await qb;
 

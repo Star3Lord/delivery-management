@@ -16,12 +16,14 @@ import {
   renderComponent,
   renderSnippet,
 } from '$lib/components/ui/data-table/index.js';
+import {
+  ColumnHeader as DataTableColumnHeader,
+  Checkbox as DataTableCheckbox,
+} from '$lib/components/ui/data-grid/index.js';
 import DataTableActions from './data-table-actions.svelte';
-import DataTableCheckbox from './data-table-checkbox.svelte';
-import DataTableColumnHeader from './data-table-column-header.svelte';
-import DateCell from './cell/data.svelte';
+import DateCell from './cell/date.svelte';
 import PartyCell from './cell/party.svelte';
-import type { DeliverySlip } from '$lib/types';
+import type { DeliverySlip } from '$lib/api/delivery-slips.remote';
 
 const billedCellSnippet = createRawSnippet<[boolean]>((getValue) => {
   const value = getValue();
@@ -148,8 +150,9 @@ export const columns: ColumnDef<DeliverySlip>[] = [
         },
       }),
     cell: ({ row }) => {
+      const party = row.getValue('party') as DeliverySlip['party'];
       return renderComponent(PartyCell, {
-        value: row.getValue('party') as any,
+        value: party || undefined,
       });
     },
     meta: {

@@ -166,8 +166,8 @@ class ColumnState {
     this.setOrderAndPinning(
       [...groupedOrder.left, ...groupedOrder.free, ...groupedOrder.right],
       {
-        left: [...groupedOrder.left],
-        right: [...groupedOrder.right],
+        left: groupedOrder.left,
+        right: groupedOrder.right,
       }
     );
   };
@@ -334,7 +334,7 @@ class ColumnState {
   };
 }
 
-const SYMBOL_KEY = 'data-table-column-order';
+const SYMBOL_KEY = 'data-grid-column-order';
 
 export function setColumnState(props: ColumnStateProps): ColumnState {
   return setContext(Symbol.for(SYMBOL_KEY), new ColumnState(props));
@@ -344,4 +344,42 @@ export function useColumnState(): ColumnState {
   return getContext(Symbol.for(SYMBOL_KEY));
 }
 
-// export const [useColumnState, setColumnState] = createContext<ColumnState>();
+// ── Types ─────────────────────────────────────────────────────
+
+export type ColumnLabelMap = Map<
+  string,
+  { label: string; icon?: { component: any; props?: Record<string, unknown> } }
+>;
+
+// ── Table config (mode, limit, etc.) ──────────────────────────
+
+export type DataFetchMode = 'pagination' | 'infinite';
+export type InfiniteTrigger = 'observer' | 'button';
+
+export class TableConfig {
+  mode = $state<DataFetchMode>('pagination');
+  infinite_trigger = $state<InfiniteTrigger>('button');
+  limit = $state(20);
+
+  constructor(init?: {
+    mode?: DataFetchMode;
+    infinite_trigger?: InfiniteTrigger;
+    limit?: number;
+  }) {
+    if (init?.mode) this.mode = init.mode;
+    if (init?.infinite_trigger) this.infinite_trigger = init.infinite_trigger;
+    if (init?.limit) this.limit = init.limit;
+  }
+}
+
+const TABLE_CONFIG_KEY = Symbol.for('data-grid-table-config');
+
+export function setTableConfig(
+  init?: ConstructorParameters<typeof TableConfig>[0]
+): TableConfig {
+  return setContext(TABLE_CONFIG_KEY, new TableConfig(init));
+}
+
+export function useTableConfig(): TableConfig {
+  return getContext<TableConfig>(TABLE_CONFIG_KEY);
+}
