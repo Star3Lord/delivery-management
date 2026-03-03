@@ -42,7 +42,7 @@
   };
 </script>
 
-<div class="flex min-h-0 w-full flex-1 flex-col">
+<!-- <div class="flex w-full min-h-full flex-col"> -->
   <DataGridProvider {order} {pinning}>
     {#if config.mode === 'pagination'}
       <ContainerPagination />
@@ -50,4 +50,4 @@
       <ContainerInfinite />
     {/if}
   </DataGridProvider>
-</div>
+<!-- </div> -->

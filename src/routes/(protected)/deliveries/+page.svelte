@@ -18,7 +18,7 @@
     {/snippet}
   </PageHeader>
 
-  <div class="flex min-h-0 flex-1 flex-col">
-    <Container mode="pagination" limit={20} />
+  <div class="flex min-h-[calc(100%-var(--header-height))] flex-col">
+    <Container mode="pagination" limit={50} />
   </div>
 </div>

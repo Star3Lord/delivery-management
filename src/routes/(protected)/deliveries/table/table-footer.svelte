@@ -23,7 +23,7 @@
 </script>
 
 <div
-  class="sticky bottom-0 z-30 -mt-px flex items-center gap-3 border-t border-border bg-background px-4 py-2"
+  class="sticky bottom-0 z-30 mt-auto flex items-center gap-3 border-t border-border bg-background px-4 py-2"
 >
   <div class="flex items-center gap-1 text-xs text-muted-foreground">
     {#if selected_count > 0}

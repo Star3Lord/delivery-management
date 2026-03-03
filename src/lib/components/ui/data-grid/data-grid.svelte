@@ -278,7 +278,7 @@
   };
 </script>
 
-<div class="flex w-full flex-col">
+<div class="flex w-full grow min-h-fit flex-col">
   <div class="sticky top-0 z-40 bg-background">
     <div class="border-b border-border px-6 py-3">
       <div class="flex items-center gap-2">
