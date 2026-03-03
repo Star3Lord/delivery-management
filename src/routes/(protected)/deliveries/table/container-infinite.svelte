@@ -18,7 +18,7 @@
     ReturnType<typeof list_delivery_slips>
   >['items'][number];
 
-  const config = useTableConfig();
+  const config = useTableConfig<DeliverySlipItem>();
 
   const fetch_page = async (params: {
     limit?: number;
@@ -31,11 +31,22 @@
     getNextPageParam: (last_page) => {
       if (!last_page.has_more) return undefined;
       const id = last_page.items.at(-1)?.id;
-      return id ? { limit: config.limit, starting_after: id } : undefined;
+      return id
+        ? {
+            limit: config.limit,
+            starting_after: id,
+            ending_before: undefined,
+            order_by: untrack(() => config.order_by),
+          }
+        : undefined;
     },
     initialPageParam: {
       limit: untrack(() => config.limit),
       starting_after: undefined as string | undefined,
+      ending_before: undefined as string | undefined,
+      order_by: undefined as
+        | { column: keyof DeliverySlipItem; direction: 'asc' | 'desc' }[]
+        | undefined,
     },
     select: (data) =>
       data.pages.flatMap((p) => p.items ?? []) as DeliverySlipItem[],

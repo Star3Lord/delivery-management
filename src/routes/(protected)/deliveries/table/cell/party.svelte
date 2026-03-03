@@ -5,11 +5,12 @@
   import Phone from '@lucide/svelte/icons/phone';
   import Mail from '@lucide/svelte/icons/mail';
   import LoaderCircle from '@lucide/svelte/icons/loader-circle';
+  import ArrowUpRight from '@lucide/svelte/icons/arrow-up-right';
+  import { resolve } from '$app/paths';
 
-  type Palette = (typeof AVATAR_PALETTES)[number];
   type Customer = Awaited<ReturnType<typeof get_customer>>;
 
-  const AVATAR_PALETTES = [
+  const PALETTES = [
     {
       bg: 'bg-blue-500/12',
       text: 'text-blue-400',
@@ -60,12 +61,14 @@
     },
   ] as const;
 
+  type Palette = (typeof PALETTES)[number];
+
   function hashName(name: string) {
     let hash = 0;
     for (let i = 0; i < name.length; i++) {
       hash = name.charCodeAt(i) + ((hash << 5) - hash);
     }
-    return Math.abs(hash) % AVATAR_PALETTES.length;
+    return Math.abs(hash) % PALETTES.length;
   }
 
   function getInitials(name: string) {
@@ -87,45 +90,26 @@
   } = $props();
 
   const initials = $derived(value ? getInitials(value.name) : '');
-  const palette = $derived(AVATAR_PALETTES[hashName(value?.name ?? '')]);
-
+  const palette = $derived(PALETTES[hashName(value?.name ?? '')]);
   let open = $state(false);
 </script>
 
-{#snippet avatar_sm(p: Palette, letters: string)}
-  <span
-    class="{p.bg} {p.text} inline-flex size-[1.15rem] shrink-0 items-center justify-center rounded-[5px] text-[9px] font-semibold"
+{#snippet detail_row(Icon: typeof Phone, text: string, multiline?: boolean)}
+  <div
+    class="flex {multiline ? 'items-start' : 'items-center'} gap-2.5 text-xs"
   >
-    {letters}
-  </span>
-{/snippet}
-
-{#snippet avatar_lg(p: Palette, letters: string)}
-  <span
-    class="{p.bg} {p.text} inline-flex size-9 shrink-0 items-center justify-center rounded-lg border {p.border} text-sm font-semibold"
-  >
-    {letters}
-  </span>
+    <Icon
+      class="{multiline
+        ? 'mt-px'
+        : ''} size-3.5 shrink-0 text-muted-foreground/50"
+    />
+    <span class="{multiline ? 'line-clamp-2' : 'truncate'} text-foreground/70">
+      {text}
+    </span>
+  </div>
 {/snippet}
 
 {#snippet contact_details(customer?: Customer)}
-  {#snippet detail_row(Icon: typeof Phone, text: string, multiline?: boolean)}
-    <div
-      class="flex {multiline ? 'items-start' : 'items-center'} gap-2.5 text-xs"
-    >
-      <Icon
-        class="{multiline
-          ? 'mt-px'
-          : ''} size-3.5 shrink-0 text-muted-foreground/50"
-      />
-      <span
-        class="{multiline ? 'line-clamp-2' : 'truncate'} text-foreground/70"
-      >
-        {text}
-      </span>
-    </div>
-  {/snippet}
-
   {#if customer && (customer.phone || customer.email || customer.address)}
     <div class="space-y-2 px-4 py-3">
       {#if customer.phone}
@@ -139,52 +123,60 @@
       {/if}
     </div>
   {:else}
-    {@render empty_state('No contact details available')}
+    <div class="px-4 py-3">
+      <p class="text-xs text-muted-foreground/50">
+        No contact details available
+      </p>
+    </div>
   {/if}
 {/snippet}
 
-<!-- Empty state -->
-{#snippet empty_state(message: string)}
-  <div class="px-4 py-3">
-    <p class="text-xs text-muted-foreground/50">{message}</p>
-  </div>
-{/snippet}
-
-{#snippet card_header(p: Palette, letters: string, name: string)}
-  <div class="{p.accent} px-4 pt-4 pb-3">
-    <div class="flex items-center gap-3">
-      {@render avatar_lg(p, letters)}
-      <div class="min-w-0 flex-1">
-        <p class="truncate text-sm font-medium text-foreground/90">{name}</p>
-        <p class="text-[11px] text-muted-foreground/70">Customer</p>
-      </div>
-    </div>
-  </div>
-{/snippet}
-
-<!-- Main render -->
 {#if value}
   <HoverCard.Root bind:open openDelay={300} closeDelay={100}>
-    <HoverCard.Trigger class="flex w-full min-w-0">
-      <div
-        class="group flex w-full min-w-0 cursor-pointer items-center gap-1.5 rounded-md px-1 py-0.5 transition-colors duration-150 hover:bg-muted/50"
+    <HoverCard.Trigger
+      href={resolve(`/customers/${value.id}`)}
+      class="group relative inline-flex max-w-full min-w-0 items-center gap-1.5 rounded-md px-1 py-0.5 no-underline transition-colors duration-150 hover:bg-muted"
+    >
+      <span
+        class="{palette.bg} {palette.text} inline-flex size-[1.15rem] shrink-0 items-center justify-center rounded-[5px] text-[9px] font-semibold"
       >
-        {@render avatar_sm(palette, initials)}
-        <span
-          class="block min-w-0 flex-1 truncate text-sm text-foreground/75 transition-colors duration-150 group-hover:text-foreground/95"
-        >
-          {value.name}
-        </span>
-      </div>
+        {initials}
+      </span>
+      <span
+        class="block min-w-0 truncate text-sm text-foreground/75 transition-colors duration-150 group-hover:text-foreground/95"
+      >
+        {value.name}
+      </span>
+      <span
+        class="absolute top-1/2 right-0.5 inline-flex size-4.5 -translate-y-1/2 items-center justify-center rounded-[inherit] opacity-0 backdrop-blur-md transition-opacity duration-150 group-hover:opacity-100"
+      >
+        <ArrowUpRight
+          class="size-3 -translate-x-0.5 translate-y-0.5 scale-75 text-foreground transition-all delay-100 duration-200 ease-out group-hover:translate-x-0 group-hover:translate-y-0 group-hover:scale-100"
+        />
+      </span>
     </HoverCard.Trigger>
 
     <HoverCard.Content
-      class="w-72 overflow-hidden p-0"
+      class="w-fit max-w-md min-w-52 overflow-hidden p-0"
       side="bottom"
       align="start"
       sideOffset={8}
     >
-      {@render card_header(palette, initials, value.name)}
+      <div class="{palette.accent} px-4 pt-4 pb-3">
+        <div class="flex items-center gap-3">
+          <span
+            class="{palette.bg} {palette.text} inline-flex size-9 shrink-0 items-center justify-center rounded-lg border {palette.border} text-sm font-semibold"
+          >
+            {initials}
+          </span>
+          <div class="min-w-0 flex-1">
+            <p class="truncate text-sm font-medium text-foreground/90">
+              {value.name}
+            </p>
+            <p class="text-[11px] text-muted-foreground/70">Customer</p>
+          </div>
+        </div>
+      </div>
 
       {#if open}
         <svelte:boundary>

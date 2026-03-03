@@ -26,6 +26,14 @@ export const list_query_validator = v.object({
   starting_after: v.optional(v.string()),
   ending_before: v.optional(v.string()),
   created_at: v.optional(date_range_filter),
+  order_by: v.optional(
+    v.array(
+      v.object({
+        column: v.string(),
+        direction: v.optional(v.union([v.literal('asc'), v.literal('desc')])),
+      })
+    )
+  ),
 });
 
 export type ListQueryParams = v.InferOutput<typeof list_query_validator>;
@@ -132,6 +140,23 @@ export function cursor_order_by(
 }
 
 /**
+ * Converts the `order_by` parameter into Drizzle SQL order expressions.
+ * Defaults to ascending when no direction is specified.
+ */
+export function build_order_by(
+  table: ListableTable,
+  params: ListQueryParams
+): SQL[] {
+  if (!params.order_by?.length) return [];
+
+  return params.order_by.map((item) => {
+    const column = (table as Record<string, any>)[item.column];
+    if (item.direction === 'desc') return desc(column);
+    return asc(column);
+  });
+}
+
+/**
  * Post-execution pagination: detects `has_more` from `limit + 1` overflow,
  * slices to page size, and reverses if paginating backward.
  */
@@ -179,7 +204,10 @@ export async function list_paginated<T extends ListableTable>(
         options.where
       )
     )
-    .orderBy(...cursor_order_by(table, options));
+    .orderBy(
+      ...cursor_order_by(table, options),
+      ...build_order_by(table, options)
+    );
 
   if (options.limit) qb.limit(options.limit + 1);
 

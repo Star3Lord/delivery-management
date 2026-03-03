@@ -12,7 +12,11 @@
   import TableFooter from './table-footer.svelte';
   import ToolbarActions from './table-toolbar-actions.svelte';
 
-  const config = useTableConfig();
+  type DeliverySlipItem = Awaited<
+    ReturnType<typeof list_delivery_slips>
+  >['items'][number];
+
+  const config = useTableConfig<DeliverySlipItem>();
 
   let page_cursors = $state<(string | undefined)[]>([undefined]);
   let current_page = $state(0);
@@ -20,7 +24,14 @@
   const params = $derived({
     limit: config.limit,
     starting_after: page_cursors[current_page],
-  });
+    ending_before: undefined,
+    order_by: config.order_by,
+  }) satisfies {
+    limit: number;
+    starting_after: string | undefined;
+    ending_before: string | undefined;
+    order_by: { column: keyof DeliverySlipItem; direction: 'asc' | 'desc' }[];
+  };
 
   function go_next(last_id: string | undefined) {
     if (!last_id) return;
@@ -34,9 +45,8 @@
   }
 </script>
 
-<svelte:boundary>
+{#snippet dataGrid()}
   {@const result = await list_delivery_slips(params)}
-
   <DataGrid data={result.items} {columns} column_labels={columnMap}>
     {#snippet toolbar({ table })}
       <Input
@@ -92,6 +102,10 @@
       </TableFooter>
     {/snippet}
   </DataGrid>
+{/snippet}
+
+<svelte:boundary>
+  {@render dataGrid()}
 
   {#snippet pending()}
     <div class="flex items-center gap-2 px-6 py-8">

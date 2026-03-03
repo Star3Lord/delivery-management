@@ -9,8 +9,6 @@
     onCheckedChange = (v) => (checked = v),
     ...restProps
   }: ComponentProps<typeof Checkbox> = $props();
-
-  $inspect(checked);
 </script>
 
 <Checkbox

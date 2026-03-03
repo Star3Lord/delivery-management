@@ -18,8 +18,9 @@ export const get_product = query(
     const product_obj = await db
       .select()
       .from(product)
-      .where(eq(product.id, id));
-    return product_obj;
+      .where(eq(product.id, id))
+      .limit(1);
+    return product_obj.at(0);
   }
 );
 

@@ -1,4 +1,4 @@
-import { and, eq } from 'drizzle-orm';
+import { and, desc, eq, sql } from 'drizzle-orm';
 import * as v from 'valibot';
 import { query, form, command } from '$app/server';
 import { db } from '$lib/server/db';
@@ -13,6 +13,7 @@ import {
   cursor_where,
   date_range_where,
   cursor_order_by,
+  build_order_by,
   is_backward,
   paginate_rows,
 } from '$lib/api/shared';
@@ -24,6 +25,30 @@ export type DeliverySlip = Awaited<
 export const list_delivery_slips = query(list_query_validator, async (args) => {
   const backward = is_backward(args);
 
+  const date_order_by = build_order_by(delivery_slip, args).filter((sql) =>
+    sql.toString().includes('date')
+  );
+
+  const cursor_where_with_date = [];
+
+  if (args.starting_after) {
+    cursor_where_with_date.push(
+      sql`(${delivery_slip.date}, ${delivery_slip.created_at}, ${delivery_slip.id}) < (
+        SELECT ${delivery_slip.date}, ${delivery_slip.created_at}, ${delivery_slip.id} FROM ${delivery_slip}
+        WHERE ${delivery_slip.id} = ${args.starting_after} LIMIT 1
+      )`
+    );
+  }
+
+  if (args.ending_before) {
+    cursor_where_with_date.push(
+      sql`(${delivery_slip.date}, ${delivery_slip.created_at}, ${delivery_slip.id}) > (
+        SELECT ${delivery_slip.date}, ${delivery_slip.created_at}, ${delivery_slip.id} FROM ${delivery_slip}
+        WHERE ${delivery_slip.id} = ${args.ending_before} LIMIT 1
+      )`
+    );
+  }
+
   const qb = db
     .select()
     .from(delivery_slip)
@@ -32,12 +57,17 @@ export const list_delivery_slips = query(list_query_validator, async (args) => {
     .leftJoin(product, eq(delivery_slip.product_id, product.id))
     .$dynamic()
     .where(
-      and(
-        ...cursor_where(delivery_slip, args),
-        ...date_range_where(delivery_slip, args)
-      )
+      and(...cursor_where_with_date, ...date_range_where(delivery_slip, args))
     )
-    .orderBy(...cursor_order_by(delivery_slip, args));
+    .orderBy(
+      ...(date_order_by.length > 0
+        ? date_order_by
+        : [desc(delivery_slip.date)]),
+      ...cursor_order_by(delivery_slip, args),
+      ...build_order_by(delivery_slip, args).filter(
+        (sql) => !sql.toString().includes('date')
+      )
+    );
 
   if (args.limit) qb.limit(args.limit + 1);
 
@@ -151,5 +181,85 @@ export const delete_delivery_slip = command(
   }),
   async ({ id }) => {
     await db.delete(delivery_slip).where(eq(delivery_slip.id, id));
+  }
+);
+
+export const get_recent_slips_by_vehicle_for_preview = query(
+  v.object({ vehicle_id: v.string(), limit: v.optional(v.number()) }),
+  async (args) => {
+    return db
+      .select({
+        external_id: delivery_slip.external_id,
+        date: delivery_slip.date,
+        party_name: customer.name,
+      })
+      .from(delivery_slip)
+      .leftJoin(customer, eq(delivery_slip.party_id, customer.id))
+      .where(eq(delivery_slip.vehicle_id, args.vehicle_id))
+      .orderBy(desc(delivery_slip.date), desc(delivery_slip.id))
+      .limit(args.limit ?? 5);
+  }
+);
+
+export const get_recent_slips_by_vehicle = query(
+  v.object({ vehicle_id: v.string(), limit: v.optional(v.number()) }),
+  async (args) => {
+    return db
+      .select()
+      .from(delivery_slip)
+      .leftJoin(customer, eq(delivery_slip.party_id, customer.id))
+      .leftJoin(vehicle, eq(delivery_slip.vehicle_id, vehicle.id))
+      .leftJoin(product, eq(delivery_slip.product_id, product.id))
+      .where(eq(delivery_slip.vehicle_id, args.vehicle_id))
+      .orderBy(desc(delivery_slip.date), desc(delivery_slip.id))
+      .limit(args.limit ?? 5)
+      .then((rows) =>
+        rows.map((row) => ({
+          ...row.delivery_slip,
+          party: row.customer,
+          vehicle: row.vehicle,
+          product: row.product,
+        }))
+      );
+  }
+);
+
+export const get_recent_slips_by_product_for_preview = query(
+  v.object({ product_id: v.string(), limit: v.optional(v.number()) }),
+  async (args) => {
+    return db
+      .select({
+        external_id: delivery_slip.external_id,
+        date: delivery_slip.date,
+        party_name: customer.name,
+      })
+      .from(delivery_slip)
+      .leftJoin(customer, eq(delivery_slip.party_id, customer.id))
+      .where(eq(delivery_slip.product_id, args.product_id))
+      .orderBy(desc(delivery_slip.date), desc(delivery_slip.id))
+      .limit(args.limit ?? 5);
+  }
+);
+
+export const get_recent_slips_by_product = query(
+  v.object({ product_id: v.string(), limit: v.optional(v.number()) }),
+  async (args) => {
+    return db
+      .select()
+      .from(delivery_slip)
+      .leftJoin(customer, eq(delivery_slip.party_id, customer.id))
+      .leftJoin(vehicle, eq(delivery_slip.vehicle_id, vehicle.id))
+      .leftJoin(product, eq(delivery_slip.product_id, product.id))
+      .where(eq(delivery_slip.product_id, args.product_id))
+      .orderBy(desc(delivery_slip.date), desc(delivery_slip.id))
+      .limit(args.limit ?? 10)
+      .then((rows) =>
+        rows.map((row) => ({
+          ...row.delivery_slip,
+          party: row.customer,
+          vehicle: row.vehicle,
+          product: row.product,
+        }))
+      );
   }
 );

@@ -4,6 +4,7 @@ import {
   type ColumnPinningState,
   type VisibilityState,
 } from '@tanstack/table-core';
+import type { ListableTable } from '$lib/api/shared';
 
 export type ColumnStateProps = {
   order?: ColumnOrderState;
@@ -356,10 +357,11 @@ export type ColumnLabelMap = Map<
 export type DataFetchMode = 'pagination' | 'infinite';
 export type InfiniteTrigger = 'observer' | 'button';
 
-export class TableConfig {
+export class TableConfig<T extends ListableTable['$inferSelect']> {
   mode = $state<DataFetchMode>('pagination');
   infinite_trigger = $state<InfiniteTrigger>('button');
   limit = $state(20);
+  order_by = $state<{ column: keyof T; direction: 'asc' | 'desc' }[]>([]);
 
   constructor(init?: {
     mode?: DataFetchMode;
@@ -374,12 +376,14 @@ export class TableConfig {
 
 const TABLE_CONFIG_KEY = Symbol.for('data-grid-table-config');
 
-export function setTableConfig(
-  init?: ConstructorParameters<typeof TableConfig>[0]
-): TableConfig {
+export function setTableConfig<T extends ListableTable['$inferSelect']>(
+  init?: ConstructorParameters<typeof TableConfig<T>>[0]
+): TableConfig<T> {
   return setContext(TABLE_CONFIG_KEY, new TableConfig(init));
 }
 
-export function useTableConfig(): TableConfig {
-  return getContext<TableConfig>(TABLE_CONFIG_KEY);
+export function useTableConfig<
+  T extends ListableTable['$inferSelect'],
+>(): TableConfig<T> {
+  return getContext<TableConfig<T>>(TABLE_CONFIG_KEY);
 }

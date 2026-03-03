@@ -18,8 +18,9 @@ export const get_vehicle = query(
     const vehicle_obj = await db
       .select()
       .from(vehicle)
-      .where(eq(vehicle.id, id));
-    return vehicle_obj;
+      .where(eq(vehicle.id, id))
+      .limit(1);
+    return vehicle_obj.at(0);
   }
 );
 

@@ -52,7 +52,8 @@ export const delivery_slip = crusher_schema.table(
     ...metadata,
   },
   (table) => [
-    index('delivery_slip_created_at_desc_id_desc_idx').on(
+    index('delivery_slip_date_desc_created_at_desc_id_desc_idx').on(
+      table.date.desc(),
       table.created_at.desc(),
       table.id.desc()
     ),

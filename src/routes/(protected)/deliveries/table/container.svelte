@@ -13,6 +13,7 @@
   import { columns } from './columns';
   import ContainerPagination from './container-pagination.svelte';
   import ContainerInfinite from './container-infinite.svelte';
+  import { untrack } from 'svelte';
 
   interface Props {
     mode?: DataFetchMode;
@@ -26,7 +27,11 @@
     limit = 20,
   }: Props = $props();
 
-  const config = setTableConfig({ mode, infinite_trigger, limit });
+  const config = setTableConfig({
+    mode: untrack(() => mode),
+    infinite_trigger: untrack(() => infinite_trigger),
+    limit: untrack(() => limit),
+  });
 
   const order: ColumnOrderState = columns.map(
     (c) => c.id || ((c as any).accessorKey as string)

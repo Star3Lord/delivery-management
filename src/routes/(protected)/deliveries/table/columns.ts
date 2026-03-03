@@ -11,7 +11,7 @@ import Stamp from '@lucide/svelte/icons/stamp';
 import Truck from '@lucide/svelte/icons/truck';
 import Weight from '@lucide/svelte/icons/weight';
 import CircleDot from '@lucide/svelte/icons/circle-dot';
-import { createRawSnippet, hydrate } from 'svelte';
+import { createRawSnippet, mount, hydrate } from 'svelte';
 import {
   renderComponent,
   renderSnippet,
@@ -23,22 +23,26 @@ import {
 import DataTableActions from './data-table-actions.svelte';
 import DateCell from './cell/date.svelte';
 import PartyCell from './cell/party.svelte';
+import VehicleCell from './cell/vehicle.svelte';
+import ProductCell from './cell/product.svelte';
 import type { DeliverySlip } from '$lib/api/delivery-slips.remote';
 
-const billedCellSnippet = createRawSnippet<[boolean]>((getValue) => {
-  const value = getValue();
-  return {
-    render: () => `<div></div>`,
-    setup(target) {
-      if (value) {
-        hydrate(Lock, {
-          target: target,
-          props: { class: 'text-sky-500 size-4' },
-        });
-      }
-    },
-  };
-});
+const billedCellSnippet = createRawSnippet<[{ state: DeliverySlip['state'] }]>(
+  (get_state) => {
+    const value = get_state();
+    return {
+      render: () => `<div></div>`,
+      setup(target) {
+        if (value.state === 'billed') {
+          hydrate(Lock, {
+            target: target,
+            props: { class: 'text-sky-500 size-4' },
+          });
+        }
+      },
+    };
+  }
+);
 
 export const columns: ColumnDef<DeliverySlip>[] = [
   {
@@ -166,7 +170,6 @@ export const columns: ColumnDef<DeliverySlip>[] = [
   },
   {
     accessorKey: 'vehicle',
-    accessorFn: (row) => row.vehicle?.number_plate,
     header: ({ column }) => {
       return renderComponent(DataTableColumnHeader<DeliverySlip, unknown>, {
         label: 'Vehicle',
@@ -178,6 +181,12 @@ export const columns: ColumnDef<DeliverySlip>[] = [
               'text-neutral-700/80 dark:text-neutral-300/80 !size-3.5 mr-0.5',
           },
         },
+      });
+    },
+    cell: ({ row }) => {
+      const vehicle = row.getValue('vehicle') as DeliverySlip['vehicle'];
+      return renderComponent(VehicleCell, {
+        value: vehicle || undefined,
       });
     },
     meta: {
@@ -263,7 +272,6 @@ export const columns: ColumnDef<DeliverySlip>[] = [
   },
   {
     accessorKey: 'product',
-    accessorFn: (row) => row.product?.name,
     header: ({ column }) => {
       return renderComponent(DataTableColumnHeader<DeliverySlip, unknown>, {
         label: 'Product',
@@ -277,6 +285,12 @@ export const columns: ColumnDef<DeliverySlip>[] = [
         },
       });
     },
+    cell: ({ row }) => {
+      const product = row.getValue('product') as DeliverySlip['product'];
+      return renderComponent(ProductCell, {
+        value: product || undefined,
+      });
+    },
     meta: {
       header: {
         class: 'p-0',
@@ -288,10 +302,6 @@ export const columns: ColumnDef<DeliverySlip>[] = [
   },
   {
     id: 'product_quantity',
-    accessorFn: (row) => ({
-      quantity: row.product_quantity,
-      unit: row.product_quantity_unit,
-    }),
     header: ({ column }) => {
       return renderComponent(DataTableColumnHeader<DeliverySlip, unknown>, {
         label: 'Quantity',
@@ -306,7 +316,7 @@ export const columns: ColumnDef<DeliverySlip>[] = [
       });
     },
     cell: ({ row }) => {
-      const { quantity, unit } = row.getValue('product_quantity') as {
+      const { quantity, unit } = row.getValue('product') as {
         quantity?: string;
         unit: string;
       };
@@ -333,38 +343,39 @@ export const columns: ColumnDef<DeliverySlip>[] = [
       },
     },
   },
+  // {
+  //   accessorKey: 'state',
+  //   header: ({ column }) =>
+  //     renderComponent(DataTableColumnHeader<DeliverySlip, unknown>, {
+  //       label: 'State',
+  //       column,
+  //       icon: {
+  //         component: CircleDot as any,
+  //         props: {
+  //           class:
+  //             'text-neutral-700/80 dark:text-neutral-300/80 !size-3.5 mr-0.5',
+  //         },
+  //       },
+  //     }),
+  //   cell: ({ row }) => {
+  //     const state = row.getValue('state') as string;
+  //     return state.charAt(0).toUpperCase() + state.slice(1);
+  //   },
+  //   enableSorting: false,
+  //   size: 100,
+  //   minSize: 70,
+  //   meta: {
+  //     header: {
+  //       class: 'p-0',
+  //       style: {
+  //         width: '5rem',
+  //       },
+  //     },
+  //   },
+  // },
   {
-    accessorKey: 'state',
-    header: ({ column }) =>
-      renderComponent(DataTableColumnHeader<DeliverySlip, unknown>, {
-        label: 'State',
-        column,
-        icon: {
-          component: CircleDot as any,
-          props: {
-            class:
-              'text-neutral-700/80 dark:text-neutral-300/80 !size-3.5 mr-0.5',
-          },
-        },
-      }),
-    cell: ({ row }) => {
-      const state = row.getValue('state') as string;
-      return state.charAt(0).toUpperCase() + state.slice(1);
-    },
-    enableSorting: false,
-    size: 100,
-    minSize: 70,
-    meta: {
-      header: {
-        class: 'p-0',
-        style: {
-          width: '5rem',
-        },
-      },
-    },
-  },
-  {
-    accessorKey: 'remarks',
+    id: 'remarks',
+    accessorFn: (row) => row.metadata?.remarks,
     header: ({ column }) =>
       renderComponent(DataTableColumnHeader<DeliverySlip, unknown>, {
         label: 'Remarks',
@@ -390,7 +401,8 @@ export const columns: ColumnDef<DeliverySlip>[] = [
     },
   },
   {
-    accessorKey: 'billed',
+    id: 'billed',
+    accessorFn: (row) => row.state,
     header: ({ column }) =>
       renderComponent(DataTableColumnHeader<DeliverySlip, unknown>, {
         label: 'Billed',
@@ -403,11 +415,9 @@ export const columns: ColumnDef<DeliverySlip>[] = [
           },
         },
       }),
-    cell: ({ row }) => {
-      return renderSnippet(
-        billedCellSnippet,
-        row.getValue('state') === 'billed'
-      );
+    cell: ({ cell }) => {
+      const slip_state = cell.getValue() as DeliverySlip['state'];
+      return renderSnippet(billedCellSnippet, { state: slip_state });
     },
     enableSorting: false,
     size: 100,
