@@ -3,12 +3,16 @@ import * as v from 'valibot';
 import { query, form, command } from '$app/server';
 import { db } from '$lib/server/db';
 import { receipt } from '$lib/server/db/schema';
-import { list_query_validator, list_paginated } from '$lib/api/shared';
+import { list_paginated } from '$lib/api/shared';
+import { create_list_query_validator } from '$lib/server/validation/query';
 
-export const list_receipts = query(list_query_validator, async (args) => {
-  const receipts = list_paginated(receipt, args);
-  return receipts;
-});
+export const list_receipts = query(
+  create_list_query_validator(receipt),
+  async (args) => {
+    const receipts = list_paginated(receipt, args);
+    return receipts;
+  }
+);
 
 export const get_receipt = query(
   v.object({

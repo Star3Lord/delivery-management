@@ -1,7 +1,6 @@
 <script lang="ts">
   import ChevronLeftIcon from '@lucide/svelte/icons/chevron-left';
   import ChevronRightIcon from '@lucide/svelte/icons/chevron-right';
-  import LoaderCircle from '@lucide/svelte/icons/loader-circle';
   import { list_delivery_slips } from '$lib/api/delivery-slips.remote';
   import { Button } from '$lib/components/ui/button/index.js';
   import { DataGrid } from '$lib/components/ui/data-grid/index.js';
@@ -45,6 +44,41 @@
   }
 </script>
 
+{#snippet pagination_nav(
+  has_more: boolean,
+  last_id: string | undefined,
+  is_loading: boolean
+)}
+  <div class="flex items-center gap-1">
+    <span class="font-mono text-xs text-muted-foreground">Page</span>
+    <span
+      class="rounded-md bg-muted px-2 py-0.5 font-mono text-xs text-muted-foreground tabular-nums"
+    >
+      {current_page + 1}
+    </span>
+    <Button
+      variant="outline"
+      size="icon"
+      class="size-7"
+      onclick={go_previous}
+      disabled={current_page === 0 || is_loading}
+    >
+      <ChevronLeftIcon class="size-3.5" />
+      <span class="sr-only">Previous page</span>
+    </Button>
+    <Button
+      variant="outline"
+      size="icon"
+      class="size-7"
+      onclick={() => go_next(last_id)}
+      disabled={!has_more || is_loading}
+    >
+      <ChevronRightIcon class="size-3.5" />
+      <span class="sr-only">Next page</span>
+    </Button>
+  </div>
+{/snippet}
+
 {#snippet dataGrid()}
   {@const result = await list_delivery_slips(params)}
   <DataGrid data={result.items} {columns} column_labels={columnMap}>
@@ -70,34 +104,11 @@
     {#snippet footer({ table })}
       <TableFooter {table}>
         {#snippet nav()}
-          <div class="flex items-center gap-1">
-            <span class="font-mono text-xs text-muted-foreground">Page</span>
-            <span
-              class="rounded-md bg-muted px-2 py-0.5 font-mono text-xs text-muted-foreground tabular-nums"
-            >
-              {current_page + 1}
-            </span>
-            <Button
-              variant="outline"
-              size="icon"
-              class="size-7"
-              onclick={go_previous}
-              disabled={current_page === 0}
-            >
-              <ChevronLeftIcon class="size-3.5" />
-              <span class="sr-only">Previous page</span>
-            </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              class="size-7"
-              onclick={() => go_next(result.items.at(-1)?.id)}
-              disabled={!result.has_more}
-            >
-              <ChevronRightIcon class="size-3.5" />
-              <span class="sr-only">Next page</span>
-            </Button>
-          </div>
+          {@render pagination_nav(
+            result.has_more,
+            result.items.at(-1)?.id,
+            false
+          )}
         {/snippet}
       </TableFooter>
     {/snippet}
@@ -108,10 +119,39 @@
   {@render dataGrid()}
 
   {#snippet pending()}
-    <div class="flex items-center gap-2 px-6 py-8">
-      <LoaderCircle class="size-4 animate-spin text-muted-foreground" />
-      <p class="text-sm text-muted-foreground">Loading deliveries…</p>
-    </div>
+    <DataGrid
+      data={[]}
+      {columns}
+      column_labels={columnMap}
+      loading={true}
+      loading_rows={config.limit}
+    >
+      {#snippet toolbar({ table })}
+        <Input
+          placeholder="Filter slip number…"
+          value={(table.getColumn('external_id')?.getFilterValue() as string) ??
+            ''}
+          oninput={(e) => {
+            table
+              .getColumn('external_id')
+              ?.setFilterValue(e.currentTarget.value);
+          }}
+          class="max-w-sm"
+        />
+      {/snippet}
+
+      {#snippet actions()}
+        <ToolbarActions is_refreshing={true} />
+      {/snippet}
+
+      {#snippet footer({ table })}
+        <TableFooter {table}>
+          {#snippet nav()}
+            {@render pagination_nav(false, undefined, true)}
+          {/snippet}
+        </TableFooter>
+      {/snippet}
+    </DataGrid>
   {/snippet}
 
   {#snippet failed(error, reset)}

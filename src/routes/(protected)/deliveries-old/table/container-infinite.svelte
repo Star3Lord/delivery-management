@@ -68,12 +68,7 @@
   }
 </script>
 
-{#if query.isPending}
-  <div class="flex items-center gap-2 px-6 py-8">
-    <LoaderCircle class="size-4 animate-spin text-muted-foreground" />
-    <p class="text-sm text-muted-foreground">Loading deliveries…</p>
-  </div>
-{:else if query.isError}
+{#if query.isError && !query.isPending}
   <div class="flex flex-col items-start gap-2 px-6 py-8">
     <p class="text-sm text-destructive">
       {query.error?.message ?? 'Failed to load deliveries'}
@@ -83,7 +78,13 @@
     </Button>
   </div>
 {:else}
-  <DataGrid data={query.data ?? []} {columns} column_labels={columnMap}>
+  <DataGrid
+    data={query.data ?? []}
+    {columns}
+    column_labels={columnMap}
+    loading={query.isPending || query.isFetchingNextPage}
+    loading_rows={query.isPending ? config.limit : 3}
+  >
     {#snippet toolbar({ table })}
       <Input
         placeholder="Filter slip number…"
@@ -109,15 +110,8 @@
           use:observe={() => {
             if (!query.isFetchingNextPage) query.fetchNextPage();
           }}
-          class="flex items-center justify-center py-4"
-        >
-          {#if query.isFetchingNextPage}
-            <div class="flex items-center gap-2 text-sm text-muted-foreground">
-              <LoaderCircle class="size-4 animate-spin" />
-              Loading more…
-            </div>
-          {/if}
-        </div>
+          class="h-1"
+        ></div>
       {:else if config.infinite_trigger === 'observer' && !query.hasNextPage && (query.data?.length ?? 0) > 0}
         <div
           class="flex items-center justify-center gap-1.5 py-3 text-xs text-muted-foreground"

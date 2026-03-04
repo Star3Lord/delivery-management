@@ -16,8 +16,10 @@ import {
   renderComponent,
   renderSnippet,
 } from '$lib/components/ui/data-table/index.js';
-import DataTableColumnHeader from '$lib/components/ui/data-grid-v2/column-header.svelte';
-import DataTableCheckbox from '$lib/components/ui/data-grid-v2/checkbox.svelte';
+import {
+  ColumnHeader as DataTableColumnHeader,
+  Checkbox as DataTableCheckbox,
+} from '$lib/components/ui/data-grid/index.js';
 import DataTableActions from './data-table-actions.svelte';
 import DateCell from './cell/date.svelte';
 import PartyCell from './cell/party.svelte';
@@ -105,12 +107,6 @@ export const columns: ColumnDef<DeliverySlip>[] = [
           'min-width': '12.5rem',
         },
       },
-      sort: { field: 'external_id' },
-      filter: {
-        type: 'string',
-        operators: ['eq', 'starts_with', 'contains', 'ends_with'],
-        field: 'external_id',
-      },
     },
   },
   {
@@ -141,12 +137,6 @@ export const columns: ColumnDef<DeliverySlip>[] = [
           'min-width': '12.5rem',
         },
       },
-      sort: { field: 'date' },
-      filter: {
-        type: 'date',
-        operators: ['eq', 'gt', 'gte', 'lt', 'lte'],
-        field: 'date',
-      },
     },
   },
   {
@@ -175,12 +165,6 @@ export const columns: ColumnDef<DeliverySlip>[] = [
         style: {
           'min-width': '12.5rem',
         },
-      },
-      sort: { field: 'party.name' },
-      filter: {
-        type: 'string',
-        operators: ['eq', 'starts_with', 'contains', 'ends_with'],
-        field: 'party.name',
       },
     },
   },
@@ -212,12 +196,6 @@ export const columns: ColumnDef<DeliverySlip>[] = [
           'min-width': '12.5rem',
         },
       },
-      sort: { field: 'vehicle.number_plate' },
-      filter: {
-        type: 'string',
-        operators: ['eq', 'starts_with', 'contains', 'ends_with'],
-        field: 'vehicle.number_plate',
-      },
     },
   },
   {
@@ -242,12 +220,6 @@ export const columns: ColumnDef<DeliverySlip>[] = [
         style: {
           'min-width': '12.5rem',
         },
-      },
-      sort: { field: 'royalty_number' },
-      filter: {
-        type: 'string',
-        operators: ['eq', 'starts_with', 'contains', 'ends_with'],
-        field: 'royalty_number',
       },
     },
   },
@@ -296,12 +268,6 @@ export const columns: ColumnDef<DeliverySlip>[] = [
           'min-width': '15rem',
         },
       },
-      sort: { field: 'royalty_quantity' },
-      filter: {
-        type: 'number',
-        operators: ['eq', 'neq', 'gt', 'gte', 'lt', 'lte'],
-        field: 'royalty_quantity',
-      },
     },
   },
   {
@@ -331,12 +297,6 @@ export const columns: ColumnDef<DeliverySlip>[] = [
         style: {
           'min-width': '15rem',
         },
-      },
-      sort: { field: 'product.name' },
-      filter: {
-        type: 'string',
-        operators: ['eq', 'starts_with', 'contains', 'ends_with'],
-        field: 'product.name',
       },
     },
   },
@@ -380,12 +340,6 @@ export const columns: ColumnDef<DeliverySlip>[] = [
         style: {
           'min-width': '15rem',
         },
-      },
-      sort: { field: 'product_quantity' },
-      filter: {
-        type: 'number',
-        operators: ['eq', 'neq', 'gt', 'gte', 'lt', 'lte'],
-        field: 'product_quantity',
       },
     },
   },

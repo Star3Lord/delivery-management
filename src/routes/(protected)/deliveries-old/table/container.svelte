@@ -43,11 +43,11 @@
 </script>
 
 <!-- <div class="flex w-full min-h-full flex-col"> -->
-  <DataGridProvider {order} {pinning}>
-    {#if config.mode === 'pagination'}
-      <ContainerPagination />
-    {:else}
-      <ContainerInfinite />
-    {/if}
-  </DataGridProvider>
+<DataGridProvider {order} {pinning}>
+  {#if config.mode === 'pagination'}
+    <ContainerPagination />
+  {:else}
+    <ContainerInfinite />
+  {/if}
+</DataGridProvider>
 <!-- </div> -->

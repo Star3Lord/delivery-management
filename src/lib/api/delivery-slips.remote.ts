@@ -9,84 +9,172 @@ import {
   product,
 } from '$lib/server/db/schema';
 import {
-  list_query_validator,
+  unflatten_row,
   cursor_where,
-  date_range_where,
+  // date_range_where,
   cursor_order_by,
   build_order_by,
   is_backward,
   paginate_rows,
 } from '$lib/api/shared';
+import { create_list_query_validator } from '$lib/server/validation/query';
+import { create_list_query } from '$lib/server/query';
 
 export type DeliverySlip = Awaited<
   ReturnType<typeof list_delivery_slips>
 >['items'][number];
 
-export const list_delivery_slips = query(list_query_validator, async (args) => {
-  const backward = is_backward(args);
+export const list_delivery_slips = query(
+  create_list_query_validator(delivery_slip, {
+    party: customer,
+    vehicle,
+    product,
+  }),
+  async (args) => {
+    console.log({ args });
 
-  const date_order_by = build_order_by(delivery_slip, args).filter((sql) =>
-    sql.toString().includes('date')
-  );
+    const backward = is_backward(args);
 
-  const cursor_where_with_date = [];
+    const date_order_by = build_order_by(delivery_slip, args).filter((sql) =>
+      sql.toString().includes('date')
+    );
 
-  if (args.starting_after) {
-    cursor_where_with_date.push(
-      sql`(${delivery_slip.date}, ${delivery_slip.created_at}, ${delivery_slip.id}) < (
+    const cursor_where_with_date = [];
+
+    if (args.starting_after) {
+      cursor_where_with_date.push(
+        sql`(${delivery_slip.date}, ${delivery_slip.created_at}, ${delivery_slip.id}) < (
         SELECT ${delivery_slip.date}, ${delivery_slip.created_at}, ${delivery_slip.id} FROM ${delivery_slip}
         WHERE ${delivery_slip.id} = ${args.starting_after} LIMIT 1
       )`
-    );
-  }
+      );
+    }
 
-  if (args.ending_before) {
-    cursor_where_with_date.push(
-      sql`(${delivery_slip.date}, ${delivery_slip.created_at}, ${delivery_slip.id}) > (
+    if (args.ending_before) {
+      cursor_where_with_date.push(
+        sql`(${delivery_slip.date}, ${delivery_slip.created_at}, ${delivery_slip.id}) > (
         SELECT ${delivery_slip.date}, ${delivery_slip.created_at}, ${delivery_slip.id} FROM ${delivery_slip}
         WHERE ${delivery_slip.id} = ${args.ending_before} LIMIT 1
       )`
+      );
+    }
+
+    const qb = db
+      .select()
+      .from(delivery_slip)
+      .leftJoin(customer, eq(delivery_slip.party_id, customer.id))
+      .leftJoin(vehicle, eq(delivery_slip.vehicle_id, vehicle.id))
+      .leftJoin(product, eq(delivery_slip.product_id, product.id))
+      .$dynamic()
+      .where(
+        and(
+          ...cursor_where_with_date
+          // ...date_range_where(delivery_slip, args)
+        )
+      )
+      .orderBy(
+        ...(date_order_by.length > 0
+          ? date_order_by
+          : [desc(delivery_slip.date)]),
+        ...cursor_order_by(delivery_slip, args),
+        ...build_order_by(delivery_slip, args).filter(
+          (sql) => !sql.toString().includes('date')
+        )
+      );
+
+    if (args.limit) qb.limit(args.limit + 1);
+
+    // console.log(qb.toSQL());
+
+    const rows = await qb;
+
+    const result = paginate_rows(rows, args.limit, backward);
+
+    // await new Promise((resolve) => setTimeout(resolve, 2000));
+
+    // if (Math.random() < 0.5) {
+    //   throw new Error('test');
+    // }
+
+    return {
+      has_more: result.has_more,
+      items: result.items.map((row) => ({
+        ...row.delivery_slip,
+        party: row.customer,
+        vehicle: row.vehicle,
+        product: row.product,
+      })),
+    };
+  }
+);
+
+const delivery_slip_relations = { party: customer, vehicle, product } as const;
+
+const DELIVERY_SLIP_TIEBREAKERS: {
+  column: string;
+  direction: 'asc' | 'desc';
+}[] = [
+  { column: 'date', direction: 'desc' },
+  { column: 'created_at', direction: 'desc' },
+  { column: 'id', direction: 'desc' },
+];
+
+export const list_delivery_slips_v2 = query(
+  create_list_query_validator(delivery_slip, delivery_slip_relations),
+  async (args) => {
+    const q = create_list_query({
+      table: delivery_slip,
+      relations: delivery_slip_relations,
+      tiebreakers: DELIVERY_SLIP_TIEBREAKERS,
+      params: args,
+    });
+
+    if (q.select) {
+      const query = db
+        .select(q.select)
+        .from(delivery_slip)
+        .leftJoin(customer, eq(delivery_slip.party_id, customer.id))
+        .leftJoin(vehicle, eq(delivery_slip.vehicle_id, vehicle.id))
+        .leftJoin(product, eq(delivery_slip.product_id, product.id))
+        .where(q.where())
+        .orderBy(...q.order())
+        .limit(q.take ?? 100);
+
+      // console.log(query.toSQL());
+
+      const rows = (await query).map((row) => {
+        return unflatten_row(row);
+      });
+
+      // await new Promise((resolve) => setTimeout(resolve, 2000));
+
+      // console.log({ row: rows[0] });
+
+      return q.paginate(rows);
+    }
+
+    const query = db
+      .select()
+      .from(delivery_slip)
+      .leftJoin(customer, eq(delivery_slip.party_id, customer.id))
+      .leftJoin(vehicle, eq(delivery_slip.vehicle_id, vehicle.id))
+      .leftJoin(product, eq(delivery_slip.product_id, product.id))
+      .where(q.where())
+      .orderBy(...q.order())
+      .limit(q.take ?? 100);
+
+    const rows = await query;
+
+    return q.paginate(
+      rows.map((row) => ({
+        ...row.delivery_slip,
+        party: row.customer,
+        vehicle: row.vehicle,
+        product: row.product,
+      }))
     );
   }
-
-  const qb = db
-    .select()
-    .from(delivery_slip)
-    .leftJoin(customer, eq(delivery_slip.party_id, customer.id))
-    .leftJoin(vehicle, eq(delivery_slip.vehicle_id, vehicle.id))
-    .leftJoin(product, eq(delivery_slip.product_id, product.id))
-    .$dynamic()
-    .where(
-      and(...cursor_where_with_date, ...date_range_where(delivery_slip, args))
-    )
-    .orderBy(
-      ...(date_order_by.length > 0
-        ? date_order_by
-        : [desc(delivery_slip.date)]),
-      ...cursor_order_by(delivery_slip, args),
-      ...build_order_by(delivery_slip, args).filter(
-        (sql) => !sql.toString().includes('date')
-      )
-    );
-
-  if (args.limit) qb.limit(args.limit + 1);
-
-  // console.log(qb.toSQL());
-
-  const rows = await qb;
-
-  const result = paginate_rows(rows, args.limit, backward);
-
-  return {
-    has_more: result.has_more,
-    items: result.items.map((row) => ({
-      ...row.delivery_slip,
-      party: row.customer,
-      vehicle: row.vehicle,
-      product: row.product,
-    })),
-  };
-});
+);
 
 export const get_delivery_slip = query(
   v.object({

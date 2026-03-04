@@ -4,7 +4,7 @@ import {
   type ColumnPinningState,
   type VisibilityState,
 } from '@tanstack/table-core';
-import type { ListableTable } from '$lib/api/shared';
+import type { CrusherTable } from '$lib/server/validation/query';
 
 export type ColumnStateProps = {
   order?: ColumnOrderState;
@@ -357,7 +357,7 @@ export type ColumnLabelMap = Map<
 export type DataFetchMode = 'pagination' | 'infinite';
 export type InfiniteTrigger = 'observer' | 'button';
 
-export class TableConfig<T extends ListableTable['$inferSelect']> {
+export class TableConfig<T extends CrusherTable['$inferSelect']> {
   mode = $state<DataFetchMode>('pagination');
   infinite_trigger = $state<InfiniteTrigger>('button');
   limit = $state(20);
@@ -376,14 +376,14 @@ export class TableConfig<T extends ListableTable['$inferSelect']> {
 
 const TABLE_CONFIG_KEY = Symbol.for('data-grid-table-config');
 
-export function setTableConfig<T extends ListableTable['$inferSelect']>(
+export function setTableConfig<T extends CrusherTable['$inferSelect']>(
   init?: ConstructorParameters<typeof TableConfig<T>>[0]
 ): TableConfig<T> {
   return setContext(TABLE_CONFIG_KEY, new TableConfig(init));
 }
 
 export function useTableConfig<
-  T extends ListableTable['$inferSelect'],
+  T extends CrusherTable['$inferSelect'],
 >(): TableConfig<T> {
   return getContext<TableConfig<T>>(TABLE_CONFIG_KEY);
 }
