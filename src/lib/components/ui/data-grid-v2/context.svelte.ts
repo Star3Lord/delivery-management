@@ -1,4 +1,10 @@
-import { getContext, setContext, type Component, type Snippet } from 'svelte';
+import {
+  getContext,
+  setContext,
+  untrack,
+  type Component,
+  type Snippet,
+} from 'svelte';
 import {
   type Column,
   type ColumnDef,
@@ -428,7 +434,7 @@ export class DataGridState<TData = unknown> {
 
   layout: ColumnLayout;
 
-  #data = $state<TData[]>([]);
+  #data = $state.raw<TData[]>([]);
   filterTree = $state<FilterGroup>(createRootFilterGroup());
 
   columnFilters = $derived.by(
