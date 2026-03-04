@@ -13,11 +13,16 @@
   const grid = useDataGrid();
 </script>
 
-<div onscroll={grid.syncHeaderScroll} class="relative overflow-x-auto">
+<div
+  {@attach (node) => {
+    node.addEventListener('scroll', grid.syncHeaderScroll, { passive: true });
+    return () => node.removeEventListener('scroll', grid.syncHeaderScroll);
+  }}
+  class="relative overflow-x-auto"
+>
   <TableUI.Root
     class="table-fixed border-separate border-spacing-0 border-border"
     style={createStyle({
-      ...grid.columnSizeVars,
       width: `${grid.table.getTotalSize()}px`,
     })}
   >

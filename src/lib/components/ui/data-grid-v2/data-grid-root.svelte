@@ -8,6 +8,7 @@
   } from '@tanstack/table-core';
   import { untrack } from 'svelte';
   import { createSvelteTable } from '$lib/components/ui/data-table/index.js';
+  import { createStyle } from '$lib/utils.js';
   import {
     DataGridState,
     setDataGrid,
@@ -121,6 +122,6 @@
   });
 </script>
 
-<div class="flex min-h-fit w-full grow flex-col">
+<div class="flex min-h-fit w-full grow flex-col" style={createStyle(grid.columnSizeVars)}>
   {@render children()}
 </div>

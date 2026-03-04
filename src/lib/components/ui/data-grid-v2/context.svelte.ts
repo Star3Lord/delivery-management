@@ -5,6 +5,7 @@ import {
   type Component,
   type Snippet,
 } from 'svelte';
+import { cn, createStyle } from '$lib/utils.js';
 import {
   type Column,
   type ColumnDef,
@@ -455,6 +456,48 @@ export class DataGridState<TData = unknown> {
   headerScrollerEl = $state<HTMLDivElement>();
 
   columnSizeVars = $derived.by(() => this.#computeColumnSizeVars());
+
+  /**
+   * Pre-computed style + class strings per visible column.
+   * Cell styles reference CSS var names (not values), so this cache is stable
+   * during resize — it only recomputes when columns/pinning/visibility change.
+   */
+  cellColumnCache = $derived.by(() => {
+    const cols = this.table?.getVisibleLeafColumns() ?? [];
+    const cache = new Map<string, { style: string; class: string }>();
+
+    for (const col of cols) {
+      const meta = col.columnDef?.meta as
+        | Record<string, Record<string, unknown> | string>
+        | undefined;
+      const metaCell = meta?.cell as Record<string, unknown> | undefined;
+      const cellClass = metaCell?.class as string | undefined;
+      const cellStyle = metaCell?.style as CSSStyleDeclaration | undefined;
+
+      const leftBorder = this.#borderClassMap.get(col.id)?.left;
+      const rightBorder = this.#borderClassMap.get(col.id)?.right ?? 'border-r';
+
+      const className = cn(
+        'min-h-8 truncate border-b border-border bg-clip-border! px-3 py-1 align-middle text-sm font-medium text-ellipsis [&:has([role=checkbox])]:pr-0',
+        leftBorder,
+        rightBorder,
+        cellClass
+      );
+
+      const style = createStyle({
+        contain: 'strict',
+        ...(cellStyle && cellStyle),
+        width: `calc(var(--col-${col.id}-size) * 1px)`,
+        'min-width': `calc(var(--col-${col.id}-size) * 1px)`,
+        'max-width': `calc(var(--col-${col.id}-size) * 1px)`,
+        ...this.getCellStyles(col),
+      });
+
+      cache.set(col.id, { style, class: className });
+    }
+
+    return cache;
+  });
 
   #borderClassMap = $derived.by(() => {
     // Recomputes when visible columns change (order, pinning, visibility)

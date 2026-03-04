@@ -10,12 +10,11 @@
 
 <div
   bind:this={grid.headerScrollerEl}
-  class="overflow-x-hidden border-b border-border"
+  class="overflow-x-hidden border-b border-border will-change-scroll"
 >
   <TableUI.Root
     class="table-fixed border-separate border-spacing-0 border-border"
     style={createStyle({
-      ...grid.columnSizeVars,
       width: `${grid.table.getTotalSize()}px`,
     })}
   >
