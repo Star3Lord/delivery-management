@@ -17,19 +17,31 @@ import {
   is_backward,
   paginate_rows,
 } from '$lib/api/shared';
-import { create_list_query_validator } from '$lib/server/validation/query';
+import {
+  create_list_query_validator,
+  create_filter_schema,
+} from '$lib/server/validation/query';
 import { create_list_query } from '$lib/server/query';
+import { delivery_slip_filter_schema } from '$lib/api/delivery-slips.filter-schema';
 
 export type DeliverySlip = Awaited<
   ReturnType<typeof list_delivery_slips>
 >['items'][number];
 
+const DELIVERY_SLIP_JSON_FIELDS = [
+  { column: 'metadata', keys: ['remarks'] },
+] as const;
+
 export const list_delivery_slips = query(
-  create_list_query_validator(delivery_slip, {
-    party: customer,
-    vehicle,
-    product,
-  }),
+  create_list_query_validator(
+    delivery_slip,
+    {
+      party: customer,
+      vehicle,
+      product,
+    },
+    { jsonFields: [...DELIVERY_SLIP_JSON_FIELDS] }
+  ),
   async (args) => {
     console.log({ args });
 
@@ -110,6 +122,13 @@ export const list_delivery_slips = query(
 
 const delivery_slip_relations = { party: customer, vehicle, product } as const;
 
+create_filter_schema(
+  delivery_slip,
+  delivery_slip_relations,
+  { jsonFields: [...DELIVERY_SLIP_JSON_FIELDS] },
+  delivery_slip_filter_schema
+);
+
 const DELIVERY_SLIP_TIEBREAKERS: {
   column: string;
   direction: 'asc' | 'desc';
@@ -120,7 +139,9 @@ const DELIVERY_SLIP_TIEBREAKERS: {
 ];
 
 export const list_delivery_slips_v2 = query(
-  create_list_query_validator(delivery_slip, delivery_slip_relations),
+  create_list_query_validator(delivery_slip, delivery_slip_relations, {
+    jsonFields: [...DELIVERY_SLIP_JSON_FIELDS],
+  }),
   async (args) => {
     const q = create_list_query({
       table: delivery_slip,
@@ -164,6 +185,8 @@ export const list_delivery_slips_v2 = query(
       .limit(q.take ?? 100);
 
     const rows = await query;
+
+    // console.log(query.toSQL());
 
     return q.paginate(
       rows.map((row) => ({

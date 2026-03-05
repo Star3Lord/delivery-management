@@ -8,15 +8,6 @@ import {
   and,
   or,
   eq,
-  ne,
-  gt,
-  gte,
-  lt,
-  lte,
-  ilike,
-  notIlike,
-  isNull,
-  isNotNull,
   asc,
   desc,
   sql,
@@ -37,49 +28,63 @@ export type PaginatedResult<T> = {
   next_cursor?: string;
 };
 
-type FilterFn = (col: PgColumn, value: string) => SQL;
+type FilterFn = (col: PgColumn | SQL, value: string) => SQL;
 
 export type OrderEntry = { column: string; direction: 'asc' | 'desc' };
 
 const FILTER_OPS: Record<FilterOperator, FilterFn> = {
-  eq: (col, val) => eq(col, val),
-  neq: (col, val) => ne(col, val),
-  gt: (col, val) => gt(col, val),
-  gte: (col, val) => gte(col, val),
-  lt: (col, val) => lt(col, val),
-  lte: (col, val) => lte(col, val),
-  contains: (col, val) => ilike(col, `%${val}%`),
-  not_contains: (col, val) => notIlike(col, `%${val}%`),
-  starts_with: (col, val) => ilike(col, `${val}%`),
-  ends_with: (col, val) => ilike(col, `%${val}`),
-  is_empty: (col) => eq(col, ''),
-  is_not_empty: (col) => ne(col, ''),
-  is_present: (col) => isNotNull(col),
-  is_not_present: (col) => isNull(col),
+  eq: (col, val) => sql`${col} = ${val}`,
+  neq: (col, val) => sql`${col} != ${val}`,
+  gt: (col, val) => sql`${col} > ${val}`,
+  gte: (col, val) => sql`${col} >= ${val}`,
+  lt: (col, val) => sql`${col} < ${val}`,
+  lte: (col, val) => sql`${col} <= ${val}`,
+  contains: (col, val) => sql`${col} ILIKE ${'%' + val + '%'}`,
+  not_contains: (col, val) => sql`${col} NOT ILIKE ${'%' + val + '%'}`,
+  starts_with: (col, val) => sql`${col} ILIKE ${val + '%'}`,
+  ends_with: (col, val) => sql`${col} ILIKE ${'%' + val}`,
+  is_empty: (col) => sql`${col} = ''`,
+  is_not_empty: (col) => sql`${col} != ''`,
+  is_present: (col) => sql`${col} IS NOT NULL`,
+  is_not_present: (col) => sql`${col} IS NULL`,
 };
 
 /**
- * Resolves a typed field string to its Drizzle column reference.
- * Supports dot-notation for relations: `"party.name"` → `customer.name`.
+ * Resolves a typed field string to its Drizzle column reference or SQL expression.
+ *
+ * Dot-notation is resolved in priority order:
+ * 1. Relation column: `"party.name"` → `customer.name` (PgColumn)
+ * 2. JSON field access: `"metadata.remarks"` → `metadata->>'remarks'` (SQL)
  */
 export function resolve_column<
   T extends CrusherTable,
   R extends Partial<Record<RelationKeys<T>, CrusherTable>> = {},
->(table: T, relations: R | undefined, field: AllColumns<T, R>): PgColumn {
+>(table: T, relations: R | undefined, field: AllColumns<T, R>): PgColumn | SQL {
   const f = field as string;
   const dot = f.indexOf('.');
 
   if (dot !== -1) {
-    const prefix = f.slice(0, dot) as string & keyof R;
-    const col_name = f.slice(dot + 1);
-    const rel_table = relations?.[prefix] as CrusherTable | undefined;
-    if (!rel_table)
-      throw new Error(`Unknown relation "${prefix}" in field "${f}"`);
-    const columns = getTableColumns(rel_table) as Record<string, PgColumn>;
-    const column = columns[col_name];
-    if (!column)
-      throw new Error(`Unknown column "${col_name}" on relation "${prefix}"`);
-    return column;
+    const prefix = f.slice(0, dot);
+    const key = f.slice(dot + 1);
+
+    const rel_table = relations?.[prefix as string & keyof R] as
+      | CrusherTable
+      | undefined;
+    if (rel_table) {
+      const columns = getTableColumns(rel_table) as Record<string, PgColumn>;
+      const column = columns[key];
+      if (!column)
+        throw new Error(`Unknown column "${key}" on relation "${prefix}"`);
+      return column;
+    }
+
+    const table_columns = getTableColumns(table) as Record<string, PgColumn>;
+    const json_col = table_columns[prefix];
+    if (json_col) {
+      return sql`${json_col}->>'${sql.raw(key)}'`;
+    }
+
+    throw new Error(`Unknown relation or column "${prefix}" in field "${f}"`);
   }
 
   const columns = getTableColumns(table) as Record<string, PgColumn>;
@@ -252,7 +257,7 @@ export function build_effective_order<
         relations,
         entry.column as AllColumns<T, R>
       );
-      if (col.primary || col.isUnique) break;
+      if ('primary' in col && (col.primary || col.isUnique)) break;
     } catch {
       // unresolvable column — keep it, don't truncate
     }
@@ -297,7 +302,7 @@ function group_by_direction(dirs: ('asc' | 'desc')[]): DirectionGroup[] {
  * Falls back to per-column AND when any value is null, since
  * `(a, b) = (v1, NULL)` in SQL is always NULL/false.
  */
-function build_tuple_eq(cols: PgColumn[], vals: unknown[]): SQL {
+function build_tuple_eq(cols: (PgColumn | SQL)[], vals: unknown[]): SQL {
   const hasNull = vals.some((v) => v === null);
   if (cols.length === 1 || hasNull) {
     const parts = cols.map((c, i) =>
@@ -316,7 +321,7 @@ function build_tuple_eq(cols: PgColumn[], vals: unknown[]): SQL {
  * wrapper.
  */
 function build_tuple_cmp(
-  cols: PgColumn[],
+  cols: (PgColumn | SQL)[],
   vals: unknown[],
   direction: 'asc' | 'desc'
 ): SQL {
@@ -434,10 +439,10 @@ export function build_select<
   table: T,
   relations: R | undefined,
   fields: AllColumns<T, R>[] | undefined
-): Record<string, PgColumn> | undefined {
+): Record<string, PgColumn | SQL> | undefined {
   if (!fields?.length) return undefined;
 
-  const select: Record<string, PgColumn> = {};
+  const select: Record<string, PgColumn | SQL> = {};
   for (const field of fields) {
     select[field as string] = resolve_column(table, relations, field);
   }

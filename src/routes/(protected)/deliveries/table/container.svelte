@@ -11,7 +11,12 @@
   import { Input } from '$lib/components/ui/input/index.js';
   import { ButtonGroup } from '$lib/components/ui/button-group/index.js';
   import * as Grid from '$lib/components/ui/data-grid-v2/index.js';
+  import type { RelationLoaderMap } from '$lib/components/ui/data-grid-v2/index.js';
   import FilterSettings from '$lib/components/ui/data-grid-v2/column-filter-settings.svelte';
+  import { delivery_slip_filter_schema } from '$lib/api/delivery-slips.filter-schema';
+  import { list_customers } from '$lib/api/customers.remote';
+  import { list_vehicles } from '$lib/api/vehicles.remote';
+  import { list_products } from '$lib/api/products.remote';
 
   import { columns, columnMap } from './columns';
   import TableWithPagination from './table-with-pagination.svelte';
@@ -41,11 +46,28 @@
     left: ['table-row-select'],
     right: ['table-row-actions'],
   };
+
+  const relationLoaders: RelationLoaderMap = {
+    customer: async () => {
+      const result = await list_customers({ limit: 500 });
+      return result.items.map((c) => ({ label: c.name, value: c.id }));
+    },
+    vehicle: async () => {
+      const result = await list_vehicles({ limit: 500 });
+      return result.items.map((v) => ({ label: v.number_plate, value: v.id }));
+    },
+    product: async () => {
+      const result = await list_products({ limit: 500 });
+      return result.items.map((p) => ({ label: p.name, value: p.id }));
+    },
+  };
 </script>
 
 <Grid.Root
   {columns}
   column_labels={columnMap}
+  filterSchema={delivery_slip_filter_schema}
+  {relationLoaders}
   config={{
     column_order: order,
     column_pinning: {

@@ -95,10 +95,92 @@ export type ServerFilterNode<Cols extends string = string> =
   | ServerFilterCondition<Cols>
   | ServerFilterGroup<Cols>;
 
+export type JsonFieldDef = { column: string; keys: readonly string[] };
+
+// ── Filter Schema (client-side, serializable) ──────────────────────────
+
+export type FilterDataType =
+  | 'string'
+  | 'number'
+  | 'date'
+  | 'enum'
+  | 'boolean'
+  | 'relation';
+
+export type FilterSchemaField = {
+  key: string;
+  label: string;
+  type: FilterDataType;
+  operators: FilterOperator[];
+  options?: { label: string; value: string }[];
+  group?: string;
+  groupLabel?: string;
+  loaderKey?: string;
+  jsonCustomSubField?: {
+    type: FilterDataType;
+    operators: FilterOperator[];
+  };
+};
+
+export type FilterSchema = FilterSchemaField[];
+
+export type RelationLoaderMap = Record<
+  string,
+  () => Promise<{ label: string; value: string }[]>
+>;
+
+/**
+ * Creates a filter schema validated against the actual DB table/relations.
+ * Every field `key` must be a valid column path (table column, relation.column,
+ * or jsonColumn.key). Throws at startup if a key is invalid.
+ */
+export function create_filter_schema<
+  T extends CrusherTable,
+  const R extends Partial<Record<RelationKeys<T>, CrusherTable>> = {},
+>(
+  table: T,
+  relations: R | undefined,
+  options: { jsonFields?: JsonFieldDef[] } | undefined,
+  fields: FilterSchemaField[]
+): FilterSchema {
+  const validColumns = new Set<string>(Object.keys(getTableColumns(table)));
+
+  if (relations) {
+    for (const [prefix, relTable] of Object.entries(relations) as [
+      string,
+      CrusherTable,
+    ][]) {
+      for (const col of Object.keys(getTableColumns(relTable))) {
+        validColumns.add(`${prefix}.${col}`);
+      }
+    }
+  }
+
+  if (options?.jsonFields) {
+    for (const { column, keys } of options.jsonFields) {
+      for (const key of keys) {
+        validColumns.add(`${column}.${key}`);
+      }
+    }
+  }
+
+  for (const field of fields) {
+    if (field.jsonCustomSubField) continue;
+    if (!validColumns.has(field.key)) {
+      throw new Error(
+        `create_filter_schema: unknown field key "${field.key}". ` +
+          `Valid columns: ${[...validColumns].join(', ')}`
+      );
+    }
+  }
+
+  return fields;
+}
+
 export function create_list_query_validator<
   T extends CrusherTable,
   const R extends Partial<Record<RelationKeys<T>, CrusherTable>> = {},
->(table: T, relations?: R) {
+>(table: T, relations?: R, options?: { jsonFields?: JsonFieldDef[] }) {
   const allColumns: string[] = Object.keys(getTableColumns(table));
 
   if (relations) {
@@ -110,6 +192,14 @@ export function create_list_query_validator<
         getTableColumns(relTable)
       ) as (keyof CrusherTable['$inferSelect'])[]) {
         allColumns.push(`${prefix}.${col}`);
+      }
+    }
+  }
+
+  if (options?.jsonFields) {
+    for (const { column, keys } of options.jsonFields) {
+      for (const key of keys) {
+        allColumns.push(`${column}.${key}`);
       }
     }
   }

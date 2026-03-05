@@ -1,8 +1,5 @@
 import { list_delivery_slips_v2 } from '$lib/api/delivery-slips.remote';
-import {
-  useDataGrid,
-  type ColumnFilterMeta,
-} from '$lib/components/ui/data-grid-v2/index.js';
+import { useDataGrid } from '$lib/components/ui/data-grid-v2/index.js';
 
 export type ListParams = Parameters<typeof list_delivery_slips_v2>[0];
 export type ListResult = Awaited<ReturnType<typeof list_delivery_slips_v2>>;
@@ -24,11 +21,8 @@ export function useDeliveryListParams() {
   for (const col of grid.columns) {
     const id = col.id ?? (col as { accessorKey?: string }).accessorKey;
     if (!id) continue;
-    const meta = col.meta as
-      | { filter?: ColumnFilterMeta; sort?: { field: string } }
-      | undefined;
+    const meta = col.meta as { sort?: { field: string } } | undefined;
     if (meta?.sort?.field) sort_field_map.set(id, meta.sort.field);
-    else if (meta?.filter?.field) sort_field_map.set(id, meta.filter.field);
   }
 
   const server_filters = $derived(

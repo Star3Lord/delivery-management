@@ -1,26 +1,37 @@
 <script lang="ts">
   import Filter from '@lucide/svelte/icons/filter';
+  import ChevronDown from '@lucide/svelte/icons/chevron-down';
   import Plus from '@lucide/svelte/icons/plus';
-  import Trash2 from '@lucide/svelte/icons/trash-2';
   import X from '@lucide/svelte/icons/x';
   import FolderPlus from '@lucide/svelte/icons/folder-plus';
+  import ListFilter from '@lucide/svelte/icons/list-filter';
+  import LinkIcon from '@lucide/svelte/icons/link';
+  import Repeat from '@lucide/svelte/icons/repeat';
+  import Check from '@lucide/svelte/icons/check';
   import type { Snippet } from 'svelte';
   import { Button } from '$lib/components/ui/button/index.js';
   import * as Popover from '$lib/components/ui/popover/index.js';
   import * as Select from '$lib/components/ui/select/index.js';
+  import * as DropdownMenu from '$lib/components/ui/dropdown-menu/index.js';
+  import * as BtnGroup from '$lib/components/ui/button-group/index.js';
   import Checkbox from '$lib/components/ui/checkbox/checkbox.svelte';
-  import Input from '$lib/components/ui/input/input.svelte';
   import { cn } from '$lib/utils';
   import {
     useDataGrid,
     createFilterId,
     createRootFilterGroup,
+    OPERATOR_LABELS,
+    RELATION_OPERATOR_LABELS,
+    NO_VALUE_OPERATORS,
     type FilterGroup,
     type FilterCondition,
     type FilterNode,
     type FilterOperator,
-    type ColumnFilterMeta,
+    type FilterSchemaField,
   } from './context.svelte';
+  import FilterValueInput from './filter-value-input.svelte';
+
+  const CUSTOM_PREFIX = '__custom__:';
 
   let {
     trigger,
@@ -33,7 +44,42 @@
 
   let draft = $state<FilterGroup>(createRootFilterGroup());
 
-  const filterableColumns = $derived(grid.getFilterableColumns());
+  const filterSchema = $derived(grid.getFilterableFields());
+
+  type FieldGroup = {
+    key: string;
+    label: string;
+    fields: FilterSchemaField[];
+    hasCustomJson: boolean;
+  };
+
+  const groupedFields = $derived.by(() => {
+    const ungrouped: FilterSchemaField[] = [];
+    const groupMap = new Map<string, FieldGroup>();
+
+    for (const field of filterSchema) {
+      if (field.group) {
+        let g = groupMap.get(field.group);
+        if (!g) {
+          g = {
+            key: field.group,
+            label: field.groupLabel ?? field.group,
+            fields: [],
+            hasCustomJson: false,
+          };
+          groupMap.set(field.group, g);
+        }
+        g.fields.push(field);
+        if (field.jsonCustomSubField) g.hasCustomJson = true;
+      } else {
+        ungrouped.push(field);
+      }
+    }
+
+    return { ungrouped, groups: [...groupMap.values()] };
+  });
+
+  const fieldByKey = $derived(new Map(filterSchema.map((f) => [f.key, f])));
 
   function handleOpenChange(isOpen: boolean) {
     open = isOpen;
@@ -42,45 +88,73 @@
     }
   }
 
-  const OPERATOR_LABELS: Record<FilterOperator, string> = {
-    eq: 'equals',
-    neq: 'not equals',
-    gt: 'greater than',
-    gte: 'greater or equal',
-    lt: 'less than',
-    lte: 'less or equal',
-    contains: 'contains',
-    not_contains: 'not contains',
-    starts_with: 'starts with',
-    ends_with: 'ends with',
-    is_empty: 'is empty',
-    is_not_empty: 'is not empty',
-    is_present: 'is present',
-    is_not_present: 'is not present',
-  };
+  type FieldLabel = { parts: string[] };
 
-  const NO_VALUE_OPERATORS = new Set<FilterOperator>([
-    'is_empty',
-    'is_not_empty',
-    'is_present',
-    'is_not_present',
-  ]);
-
-  function getColumnLabel(columnId: string): string {
-    return grid.column_labels?.get(columnId)?.label ?? columnId;
+  function getFieldDisplayLabel(fieldKey: string): FieldLabel {
+    const field = fieldByKey.get(fieldKey);
+    if (!field) return { parts: [fieldKey] };
+    if (field.group && field.groupLabel) {
+      if (field.type === 'relation') {
+        return { parts: [field.groupLabel] };
+      }
+      return { parts: [field.groupLabel, field.label] };
+    }
+    return { parts: [field.label] };
   }
 
-  function getColumnMeta(columnId: string): ColumnFilterMeta | undefined {
-    return filterableColumns.find((c) => c.id === columnId)?.meta;
+  function getField(fieldKey: string): FilterSchemaField | undefined {
+    return fieldByKey.get(fieldKey);
   }
 
-  function getOperatorsForColumn(columnId: string): FilterOperator[] {
-    return getColumnMeta(columnId)?.operators ?? ['eq', 'neq'];
+  function getEffectiveField(
+    condition: FilterCondition
+  ): FilterSchemaField | undefined {
+    if (!condition.fieldKey) return undefined;
+    const field = fieldByKey.get(condition.fieldKey);
+    if (!field) return undefined;
+    if (
+      condition.customJsonKey &&
+      condition.customJsonKey !== '' &&
+      condition.customJsonKey !== CUSTOM_PREFIX &&
+      field.jsonCustomSubField
+    ) {
+      return {
+        ...field,
+        type: field.jsonCustomSubField.type,
+        operators: field.jsonCustomSubField.operators,
+      };
+    }
+    return field;
   }
 
-  function defaultOperatorForColumn(columnId: string): FilterOperator {
-    const ops = getOperatorsForColumn(columnId);
-    return ops[0] ?? 'eq';
+  function getOperatorLabel(
+    field: FilterSchemaField | undefined,
+    op: FilterOperator
+  ): string {
+    if (field?.type === 'relation') {
+      return RELATION_OPERATOR_LABELS[op] ?? OPERATOR_LABELS[op];
+    }
+    return OPERATOR_LABELS[op];
+  }
+
+  function getSelectDisplayLabel(
+    condition: FilterCondition
+  ): FieldLabel | null {
+    if (!condition.fieldKey) return null;
+    if (
+      condition.customJsonKey &&
+      condition.customJsonKey !== '' &&
+      condition.customJsonKey !== CUSTOM_PREFIX
+    ) {
+      const field = fieldByKey.get(condition.fieldKey);
+      const groupLabel = field?.groupLabel ?? field?.group ?? '';
+      return { parts: [groupLabel, condition.customJsonKey] };
+    }
+    if (condition.customJsonKey === CUSTOM_PREFIX) {
+      const field = fieldByKey.get(condition.fieldKey);
+      return { parts: [field?.groupLabel ?? field?.group ?? '', '...'] };
+    }
+    return getFieldDisplayLabel(condition.fieldKey);
   }
 
   function insertNode(
@@ -114,7 +188,10 @@
     tree: FilterGroup,
     nodeId: string,
     updates: Partial<
-      Pick<FilterCondition, 'columnId' | 'operator' | 'operand' | 'enabled'>
+      Pick<
+        FilterCondition,
+        'fieldKey' | 'customJsonKey' | 'operator' | 'operand' | 'enabled'
+      >
     >
   ): FilterGroup {
     return {
@@ -148,13 +225,12 @@
   }
 
   function addCondition(parentId: string) {
-    const defaultCol = filterableColumns[0];
-    if (!defaultCol) return;
+    if (filterSchema.length === 0) return;
     const condition: FilterCondition = {
       type: 'condition',
       id: createFilterId(),
-      columnId: defaultCol.id,
-      operator: defaultOperatorForColumn(defaultCol.id),
+      fieldKey: '',
+      operator: '' as FilterOperator,
       operand: '',
       enabled: true,
     };
@@ -167,8 +243,28 @@
       id: createFilterId(),
       logic,
       children: [],
+      enabled: true,
     };
     draft = insertNode(draft, parentId, group);
+  }
+
+  function updateGroupEnabled(
+    tree: FilterGroup,
+    groupId: string,
+    enabled: boolean
+  ): FilterGroup {
+    return {
+      ...tree,
+      children: tree.children.map((child) => {
+        if (child.type === 'group' && child.id === groupId) {
+          return { ...child, enabled };
+        }
+        if (child.type === 'group') {
+          return updateGroupEnabled(child, groupId, enabled);
+        }
+        return child;
+      }),
+    };
   }
 
   function removeNode(nodeId: string) {
@@ -178,22 +274,31 @@
   function onConditionUpdate(
     nodeId: string,
     updates: Partial<
-      Pick<FilterCondition, 'columnId' | 'operator' | 'operand' | 'enabled'>
+      Pick<
+        FilterCondition,
+        'fieldKey' | 'customJsonKey' | 'operator' | 'operand' | 'enabled'
+      >
     >
   ) {
     draft = updateNode(draft, nodeId, updates);
   }
 
-  function onColumnChange(
-    nodeId: string,
-    newColumnId: string,
-    currentOperator: FilterOperator
-  ) {
-    const newOps = getOperatorsForColumn(newColumnId);
-    const operatorStillValid = newOps.includes(currentOperator);
-    draft = updateNode(draft, nodeId, {
-      columnId: newColumnId,
-      operator: operatorStillValid ? currentOperator : (newOps[0] ?? 'eq'),
+  function onFieldSelect(conditionId: string, fieldKey: string) {
+    delete customSubFieldInputs[conditionId];
+    draft = updateNode(draft, conditionId, {
+      fieldKey,
+      customJsonKey: undefined,
+      operator: '' as FilterOperator,
+      operand: '',
+    });
+  }
+
+  function onCustomJsonSelect(conditionId: string, baseFieldKey: string) {
+    customSubFieldInputs[conditionId] = '';
+    draft = updateNode(draft, conditionId, {
+      fieldKey: baseFieldKey,
+      customJsonKey: CUSTOM_PREFIX,
+      operator: '' as FilterOperator,
       operand: '',
     });
   }
@@ -243,169 +348,386 @@
     }
     return count(grid.filterTree);
   });
+
+  function isConditionIncomplete(c: FilterCondition): boolean {
+    if (!c.enabled) return false;
+    if (!c.fieldKey) return true;
+    if (c.customJsonKey === CUSTOM_PREFIX) return true;
+    if (!c.operator) return true;
+    if (!NO_VALUE_OPERATORS.has(c.operator as FilterOperator) && !c.operand)
+      return true;
+    return false;
+  }
+
+  const hasIncomplete = $derived.by(() => {
+    function check(node: FilterGroup): boolean {
+      for (const child of node.children) {
+        if (child.type === 'condition' && isConditionIncomplete(child))
+          return true;
+        if (child.type === 'group' && check(child)) return true;
+      }
+      return false;
+    }
+    return check(draft);
+  });
+
+  let customSubFieldInputs = $state<Record<string, string>>({});
+  let fieldPickerOpen = $state<Record<string, boolean>>({});
+
+  function isGroupActive(
+    condition: FilterCondition,
+    groupKey: string
+  ): boolean {
+    if (!condition.fieldKey) return false;
+    const field = fieldByKey.get(condition.fieldKey);
+    return field?.group === groupKey;
+  }
+
+  function logicToggleClass(logic: 'and' | 'or') {
+    return logic === 'and'
+      ? 'border-blue-200 bg-blue-50 text-blue-600 hover:bg-blue-100 dark:border-blue-500/30 dark:bg-blue-500/10 dark:text-blue-400 dark:hover:bg-blue-500/20'
+      : 'border-amber-200 bg-amber-50 text-amber-600 hover:bg-amber-100 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-400 dark:hover:bg-amber-500/20';
+  }
 </script>
 
 {#snippet conditionRow(condition: FilterCondition)}
-  {@const operators = getOperatorsForColumn(condition.columnId)}
-  {@const needsValue = !NO_VALUE_OPERATORS.has(condition.operator)}
-  <div class="flex items-center gap-2">
+  {@const hasField = condition.fieldKey !== ''}
+  {@const isCustomPending = condition.customJsonKey === CUSTOM_PREFIX}
+  {@const isCustomResolved =
+    !!condition.customJsonKey && condition.customJsonKey !== CUSTOM_PREFIX}
+  {@const effectiveField = hasField ? getEffectiveField(condition) : undefined}
+  {@const operators = effectiveField?.operators ?? []}
+  {@const fieldResolved = hasField && !isCustomPending}
+  {@const hasOperator = fieldResolved && condition.operator !== ''}
+  {@const needsValue =
+    hasOperator &&
+    !NO_VALUE_OPERATORS.has(condition.operator as FilterOperator)}
+  <div
+    class={cn(
+      'group/row flex flex-1 items-center gap-2',
+      !condition.enabled && 'opacity-50'
+    )}
+  >
     <Checkbox
       checked={condition.enabled}
       onCheckedChange={(v) => onConditionUpdate(condition.id, { enabled: !!v })}
-      class="shrink-0"
+      class="size-3.5 shrink-0"
     />
 
-    <Select.Root
-      type="single"
-      value={condition.columnId}
-      onValueChange={(v) => {
-        if (v) onColumnChange(condition.id, v, condition.operator);
-      }}
-    >
-      <Select.Trigger size="sm" class="h-8 min-w-32 text-xs">
-        {getColumnLabel(condition.columnId)}
-      </Select.Trigger>
-      <Select.Content class="max-h-60">
-        {#each filterableColumns as col (col.id)}
-          <Select.Item value={col.id} label={getColumnLabel(col.id)} />
-        {/each}
-      </Select.Content>
-    </Select.Root>
+    <BtnGroup.Root>
+      <!-- Field picker using DropdownMenu with nested sub-menus -->
+      <DropdownMenu.Root
+        open={fieldPickerOpen[condition.id] ?? false}
+        onOpenChange={(o) => {
+          fieldPickerOpen[condition.id] = o;
+        }}
+      >
+        <DropdownMenu.Trigger>
+          {#snippet child({ props })}
+            {@const displayLabel = getSelectDisplayLabel(condition)}
+            <button
+              {...props}
+              type="button"
+              class={cn(
+                'flex h-7 min-w-0 items-center gap-1 rounded-md border border-input bg-transparent px-2.5 text-[11px] shadow-xs transition-colors select-none hover:bg-accent/50 dark:bg-input/30 dark:hover:bg-input/50',
+                hasField ? 'font-medium' : 'text-muted-foreground'
+              )}
+            >
+              {#if displayLabel}
+                <span class="flex items-center gap-1 truncate">
+                  {#each displayLabel.parts as part, i}
+                    {#if i > 0}
+                      <span class="mx-0.5 h-3 w-px shrink-0 bg-border"></span>
+                    {/if}
+                    <span
+                      class={i === 0 && displayLabel.parts.length > 1
+                        ? 'text-muted-foreground'
+                        : ''}
+                    >
+                      {part}
+                    </span>
+                  {/each}
+                </span>
+              {:else}
+                <span class="truncate">Select field...</span>
+              {/if}
+              <ChevronDown class="size-3 shrink-0 opacity-50" />
+            </button>
+          {/snippet}
+        </DropdownMenu.Trigger>
+        <DropdownMenu.Content
+          align="start"
+          class="max-h-72 min-w-40 overflow-y-auto"
+        >
+          {#each groupedFields.ungrouped as field (field.key)}
+            <DropdownMenu.Item
+              class="gap-2 py-1 ps-2 text-[11px]"
+              onclick={() => {
+                onFieldSelect(condition.id, field.key);
+                fieldPickerOpen[condition.id] = false;
+              }}
+            >
+              <Check
+                class={cn(
+                  'size-3 shrink-0',
+                  condition.fieldKey === field.key && !condition.customJsonKey
+                    ? 'opacity-100'
+                    : 'opacity-0'
+                )}
+              />
+              {field.label}
+            </DropdownMenu.Item>
+          {/each}
 
-    <Select.Root
-      type="single"
-      value={condition.operator}
-      onValueChange={(v) => {
-        if (v)
-          onConditionUpdate(condition.id, { operator: v as FilterOperator });
-      }}
-    >
-      <Select.Trigger size="sm" class="h-8 min-w-32 text-xs">
-        {OPERATOR_LABELS[condition.operator]}
-      </Select.Trigger>
-      <Select.Content class="max-h-60">
-        {#each operators as op (op)}
-          <Select.Item value={op} label={OPERATOR_LABELS[op]} />
-        {/each}
-      </Select.Content>
-    </Select.Root>
+          {#if groupedFields.ungrouped.length > 0 && groupedFields.groups.length > 0}
+            <DropdownMenu.Separator />
+          {/if}
 
-    {#if needsValue}
-      <Input
-        type="text"
-        value={condition.operand}
-        oninput={(e) =>
-          onConditionUpdate(condition.id, { operand: e.currentTarget.value })}
-        placeholder="Value"
-        class="h-8 min-w-32 text-xs"
-      />
-    {/if}
+          {#each groupedFields.groups as group (group.key)}
+            {@const active = isGroupActive(condition, group.key)}
+            <DropdownMenu.Sub>
+              <DropdownMenu.SubTrigger class="gap-2 py-1 ps-2 text-[11px]">
+                <span
+                  class={cn('flex size-3 shrink-0 items-center justify-center')}
+                >
+                  {#if active}
+                    <span class="size-1.5 rounded-full bg-foreground"></span>
+                  {/if}
+                </span>
+                {group.label}
+              </DropdownMenu.SubTrigger>
+              <DropdownMenu.SubContent class="min-w-36">
+                {#each group.fields as field (field.key)}
+                  <DropdownMenu.Item
+                    class="gap-2 py-1 ps-2 text-[11px]"
+                    onclick={() => {
+                      onFieldSelect(condition.id, field.key);
+                      fieldPickerOpen[condition.id] = false;
+                    }}
+                  >
+                    <Check
+                      class={cn(
+                        'size-3 shrink-0',
+                        condition.fieldKey === field.key &&
+                          !condition.customJsonKey
+                          ? 'opacity-100'
+                          : 'opacity-0'
+                      )}
+                    />
+                    {#if field.type === 'relation'}
+                      <LinkIcon class="size-3 shrink-0" />
+                      Exact
+                    {:else}
+                      {field.label}
+                    {/if}
+                  </DropdownMenu.Item>
+                {/each}
+                {#if group.hasCustomJson}
+                  {@const jsonField = group.fields.find(
+                    (f) => f.jsonCustomSubField
+                  )}
+                  {#if jsonField}
+                    <DropdownMenu.Separator />
+                    <DropdownMenu.Item
+                      class="gap-2 py-1 ps-2 text-[11px] text-muted-foreground"
+                      onclick={() => {
+                        onCustomJsonSelect(condition.id, jsonField.key);
+                        fieldPickerOpen[condition.id] = false;
+                      }}
+                    >
+                      <span class="size-3 shrink-0"></span>
+                      Custom key...
+                    </DropdownMenu.Item>
+                  {/if}
+                {/if}
+              </DropdownMenu.SubContent>
+            </DropdownMenu.Sub>
+          {/each}
+        </DropdownMenu.Content>
+      </DropdownMenu.Root>
 
-    <Button
-      variant="ghost"
-      size="icon"
-      class="size-7 shrink-0 text-muted-foreground hover:text-destructive"
+      <!-- Custom JSON key input -->
+      {#if isCustomPending || isCustomResolved}
+        <input
+          type="text"
+          class="h-7 w-24 min-w-0 rounded-none border-y border-r bg-background px-2 text-[11px] outline-none placeholder:text-muted-foreground/50 focus:ring-1 focus:ring-ring"
+          placeholder="Key name..."
+          value={customSubFieldInputs[condition.id] ??
+            (isCustomResolved ? (condition.customJsonKey ?? '') : '')}
+          oninput={(e) => {
+            customSubFieldInputs[condition.id] = (
+              e.target as HTMLInputElement
+            ).value;
+          }}
+          onkeydown={(e) => {
+            if (e.key === 'Enter') {
+              const val = customSubFieldInputs[condition.id]?.trim();
+              if (val) {
+                onConditionUpdate(condition.id, {
+                  customJsonKey: val,
+                  operator: '',
+                  operand: '',
+                });
+                delete customSubFieldInputs[condition.id];
+              }
+            }
+          }}
+          onblur={() => {
+            const val = customSubFieldInputs[condition.id]?.trim();
+            if (val) {
+              onConditionUpdate(condition.id, {
+                customJsonKey: val,
+                operator: '',
+                operand: '',
+              });
+              delete customSubFieldInputs[condition.id];
+            }
+          }}
+        />
+      {/if}
+
+      <!-- Operator selector -->
+      {#if fieldResolved}
+        <Select.Root
+          type="single"
+          value={condition.operator || undefined}
+          onValueChange={(v) => {
+            if (v)
+              onConditionUpdate(condition.id, {
+                operator: v as FilterOperator,
+              });
+          }}
+        >
+          <Select.Trigger
+            size="sm"
+            class={cn(
+              'h-7 min-w-0 px-2.5 text-[11px] data-[size=sm]:h-7 [&_svg]:size-3!',
+              hasOperator ? 'text-muted-foreground' : 'text-muted-foreground/50'
+            )}
+          >
+            {hasOperator
+              ? getOperatorLabel(
+                  effectiveField,
+                  condition.operator as FilterOperator
+                )
+              : 'Select operator...'}
+          </Select.Trigger>
+          <Select.Content class="max-h-60">
+            {#each operators as op (op)}
+              <Select.Item
+                value={op}
+                label={getOperatorLabel(effectiveField, op)}
+                class="py-1 pe-6 text-[11px]"
+              />
+            {/each}
+          </Select.Content>
+        </Select.Root>
+      {/if}
+
+      <!-- Value input -->
+      {#if needsValue}
+        <FilterValueInput
+          inline
+          type={effectiveField?.type ?? 'string'}
+          value={condition.operand}
+          options={effectiveField?.options}
+          loaderKey={effectiveField?.loaderKey}
+          relationLoaders={grid.relationLoaders}
+          onchange={(v) => onConditionUpdate(condition.id, { operand: v })}
+        />
+      {/if}
+    </BtnGroup.Root>
+
+    <button
+      type="button"
+      class="size-5 shrink-0 rounded text-muted-foreground/60 opacity-0 transition-all group-hover/row:opacity-100 hover:text-destructive"
       onclick={() => removeNode(condition.id)}
     >
-      <X class="size-3.5" />
-    </Button>
+      <X class="m-auto size-3" />
+    </button>
   </div>
 {/snippet}
 
-{#snippet logicBadge(group: FilterGroup)}
-  <button
-    type="button"
-    class="my-0.5 flex items-center gap-2 self-start"
-    onclick={() => toggleGroupLogic(group.id)}
-  >
-    <span class="h-px w-4 bg-border"></span>
-    <span
-      class={cn(
-        'rounded-md px-2 py-0.5 text-[0.675rem] font-semibold tracking-wide uppercase transition-colors select-none',
-        group.logic === 'and'
-          ? 'bg-blue-500/15 text-blue-400'
-          : 'bg-amber-500/15 text-amber-400'
-      )}
-    >
-      {group.logic}
-    </span>
-    <span class="h-px w-4 bg-border"></span>
-  </button>
+{#snippet logicLabel(group: FilterGroup, index: number)}
+  <div class="flex h-7 w-14 shrink-0 items-center">
+    {#if index === 0}
+      <span class="text-[11px] text-muted-foreground select-none">Where</span>
+    {:else}
+      <button
+        type="button"
+        class={cn(
+          'flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[10px] font-semibold tracking-wide capitalize transition-colors select-none',
+          logicToggleClass(group.logic)
+        )}
+        onclick={() => toggleGroupLogic(group.id)}
+      >
+        {group.logic}
+        <Repeat class="size-2.5" />
+      </button>
+    {/if}
+  </div>
 {/snippet}
 
 {#snippet filterGroup(group: FilterGroup, depth: number)}
   <div
     class={cn(
-      'flex flex-col gap-1',
-      depth > 0 && 'rounded-lg border border-border/60 bg-muted/30 p-3'
+      'flex flex-col',
+      depth > 0 &&
+        'flex-1 rounded-lg border border-border/60 bg-muted/15 px-2.5 pt-2 pb-1.5'
     )}
   >
-    {#if depth > 0}
-      <div class="mb-1 flex items-center justify-between">
-        <button
-          type="button"
-          class={cn(
-            'rounded-md px-2 py-0.5 text-[0.675rem] font-semibold tracking-wide uppercase transition-colors select-none',
-            group.logic === 'and'
-              ? 'bg-blue-500/15 text-blue-400'
-              : 'bg-amber-500/15 text-amber-400'
-          )}
-          onclick={() => toggleGroupLogic(group.id)}
-        >
-          {group.logic}
-        </button>
-        <Button
-          variant="ghost"
-          size="icon"
-          class="size-6 text-muted-foreground hover:text-destructive"
-          onclick={() => removeNode(group.id)}
-        >
-          <X class="size-3" />
-        </Button>
-      </div>
-    {/if}
-
     {#each group.children as child, i (child.id)}
-      {#if i > 0 && depth === 0}
-        {@render logicBadge(group)}
-      {:else if i > 0 && depth > 0}
-        <div class="my-0.5 flex items-center gap-2 self-start pl-7">
-          <span
-            class="text-[0.65rem] font-semibold tracking-wide text-muted-foreground uppercase"
-          >
-            {group.logic}
-          </span>
-        </div>
-      {/if}
+      <div class={cn('flex items-center gap-3', i > 0 && 'mt-1.5')}>
+        {@render logicLabel(group, i)}
 
-      {#if child.type === 'condition'}
-        {@render conditionRow(child)}
-      {:else if child.type === 'group'}
-        {@render filterGroup(child, depth + 1)}
-      {/if}
+        {#if child.type === 'condition'}
+          {@render conditionRow(child)}
+        {:else if child.type === 'group'}
+          <div
+            class={cn(
+              'group/row flex flex-1 items-center gap-2',
+              child.enabled === false && 'opacity-50'
+            )}
+          >
+            <Checkbox
+              checked={child.enabled !== false}
+              onCheckedChange={(v) => {
+                draft = updateGroupEnabled(draft, child.id, !!v);
+              }}
+              class="size-3.5 shrink-0"
+            />
+            {@render filterGroup(child, depth + 1)}
+            <button
+              type="button"
+              class="size-5 shrink-0 rounded text-muted-foreground/60 opacity-0 transition-all group-hover/row:opacity-100 hover:text-destructive"
+              onclick={() => removeNode(child.id)}
+            >
+              <X class="m-auto size-3" />
+            </button>
+          </div>
+        {/if}
+      </div>
     {/each}
 
-    <div class="mt-1 flex items-center gap-2">
-      <Button
-        variant="ghost"
-        size="sm"
-        class="h-7 gap-1 px-2 text-xs text-muted-foreground"
+    <div class="flex items-center gap-1.5 py-1.5">
+      <button
+        type="button"
+        class="flex h-6 items-center gap-1 rounded-md border border-dashed border-border/60 px-2 text-[11px] text-muted-foreground transition-colors hover:border-border hover:bg-accent hover:text-foreground"
         onclick={() => addCondition(group.id)}
       >
-        <Plus class="size-3" />
-        Add Filter
-      </Button>
+        <Plus class="size-2.5" />
+        Add filter
+      </button>
       {#if depth < 2}
-        <Button
-          variant="ghost"
-          size="sm"
-          class="h-7 gap-1 px-2 text-xs text-muted-foreground"
+        <button
+          type="button"
+          class="flex h-6 items-center gap-1 rounded-md px-1.5 text-[11px] text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
           onclick={() =>
             addGroup(group.id, group.logic === 'and' ? 'or' : 'and')}
         >
-          <FolderPlus class="size-3" />
-          Add Group
-        </Button>
+          <FolderPlus class="size-2.5" />
+          Add group
+        </button>
       {/if}
     </div>
   </div>
@@ -423,38 +745,51 @@
     sideOffset={8}
   >
     <div class="flex flex-col">
-      <div class="flex items-center gap-2 border-b border-border px-4 py-3">
+      <div class="flex items-center gap-2 border-b px-4 py-2">
         <Filter class="size-3.5 text-muted-foreground" />
-        <h3 class="text-sm font-semibold">Filter Data</h3>
+        <span class="text-xs font-semibold">Filters</span>
         {#if draft.children.length > 0}
-          <Button
-            variant="ghost"
-            size="sm"
-            class="ml-auto h-6 gap-1 px-2 text-xs text-muted-foreground hover:text-destructive"
+          <button
+            type="button"
+            class="ml-auto text-[11px] text-muted-foreground transition-colors hover:text-destructive"
             onclick={clearAll}
           >
-            <Trash2 class="size-3" />
             Clear all
-          </Button>
+          </button>
         {/if}
       </div>
 
-      <div class="max-h-[50vh] overflow-y-auto px-4 py-3">
-        {#if filterableColumns.length === 0}
-          <p class="py-4 text-center text-sm text-muted-foreground">
-            No filterable columns configured.
-          </p>
+      <div class="max-h-[50vh] overflow-y-auto px-2.5 py-2">
+        {#if filterSchema.length === 0}
+          <div class="flex flex-col items-center gap-1.5 py-6">
+            <ListFilter class="size-7 text-muted-foreground/30" />
+            <p class="text-[11px] text-muted-foreground">
+              No filterable fields configured.
+            </p>
+          </div>
         {:else if draft.children.length === 0}
-          <div class="flex flex-col items-center gap-2 py-4">
-            <p class="text-sm text-muted-foreground">No filters applied.</p>
+          <div class="flex flex-col items-center gap-2.5 py-6">
+            <div
+              class="flex size-9 items-center justify-center rounded-full bg-muted"
+            >
+              <ListFilter class="size-4 text-muted-foreground" />
+            </div>
+            <div class="flex flex-col items-center gap-0.5">
+              <p class="text-xs font-medium text-foreground">
+                No filters applied
+              </p>
+              <p class="text-[11px] text-muted-foreground">
+                Add a filter to narrow down your data.
+              </p>
+            </div>
             <Button
               variant="outline"
               size="sm"
-              class="h-7 gap-1 text-xs"
+              class="mt-0.5 h-6 gap-1 rounded-md px-2.5 text-[11px]"
               onclick={() => addCondition('root')}
             >
-              <Plus class="size-3" />
-              Add Filter
+              <Plus class="size-2.5" />
+              Add filter
             </Button>
           </div>
         {:else}
@@ -462,21 +797,26 @@
         {/if}
       </div>
 
-      <div
-        class="flex items-center justify-end gap-2 border-t border-border px-4 py-3"
-      >
-        <Button
-          variant="ghost"
-          size="sm"
-          class="h-8 px-3 text-xs"
-          onclick={cancel}
-        >
-          Cancel
-        </Button>
-        <Button size="sm" class="h-8 px-4 text-xs" onclick={apply}>
-          Apply
-        </Button>
-      </div>
+      {#if draft.children.length > 0}
+        <div class="flex items-center justify-end gap-2 border-t px-4 py-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            class="h-7 px-3 text-[11px]"
+            onclick={cancel}
+          >
+            Cancel
+          </Button>
+          <Button
+            size="sm"
+            class="h-7 px-4 text-[11px] font-medium"
+            disabled={hasIncomplete}
+            onclick={apply}
+          >
+            Apply filters
+          </Button>
+        </div>
+      {/if}
     </div>
   </Popover.Content>
 </Popover.Root>

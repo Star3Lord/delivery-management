@@ -14,16 +14,27 @@
     setDataGrid,
     type ColumnLabelMap,
     type DataGridConfig,
+    type FilterSchema,
+    type RelationLoaderMap,
   } from './context.svelte';
 
   type RootProps = {
     columns: ColumnDef<TData, TValue>[];
     column_labels?: ColumnLabelMap;
     config?: DataGridConfig;
+    filterSchema?: FilterSchema;
+    relationLoaders?: RelationLoaderMap;
     children: Snippet;
   };
 
-  let { columns, column_labels, config, children }: RootProps = $props();
+  let {
+    columns,
+    column_labels,
+    config,
+    filterSchema,
+    relationLoaders,
+    children,
+  }: RootProps = $props();
 
   const grid = untrack(
     () =>
@@ -31,6 +42,8 @@
         columns: columns as ColumnDef<TData, unknown>[],
         column_labels,
         config,
+        filterSchema,
+        relationLoaders,
       })
   );
 

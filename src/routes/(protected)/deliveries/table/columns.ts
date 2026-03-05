@@ -106,11 +106,6 @@ export const columns: ColumnDef<DeliverySlip>[] = [
         },
       },
       sort: { field: 'external_id' },
-      filter: {
-        type: 'string',
-        operators: ['eq', 'starts_with', 'contains', 'ends_with'],
-        field: 'external_id',
-      },
     },
   },
   {
@@ -142,11 +137,6 @@ export const columns: ColumnDef<DeliverySlip>[] = [
         },
       },
       sort: { field: 'date' },
-      filter: {
-        type: 'date',
-        operators: ['eq', 'gt', 'gte', 'lt', 'lte'],
-        field: 'date',
-      },
     },
   },
   {
@@ -177,11 +167,6 @@ export const columns: ColumnDef<DeliverySlip>[] = [
         },
       },
       sort: { field: 'party.name' },
-      filter: {
-        type: 'string',
-        operators: ['eq', 'starts_with', 'contains', 'ends_with'],
-        field: 'party.name',
-      },
     },
   },
   {
@@ -213,11 +198,6 @@ export const columns: ColumnDef<DeliverySlip>[] = [
         },
       },
       sort: { field: 'vehicle.number_plate' },
-      filter: {
-        type: 'string',
-        operators: ['eq', 'starts_with', 'contains', 'ends_with'],
-        field: 'vehicle.number_plate',
-      },
     },
   },
   {
@@ -244,11 +224,6 @@ export const columns: ColumnDef<DeliverySlip>[] = [
         },
       },
       sort: { field: 'royalty_number' },
-      filter: {
-        type: 'string',
-        operators: ['eq', 'starts_with', 'contains', 'ends_with'],
-        field: 'royalty_number',
-      },
     },
   },
   {
@@ -297,11 +272,6 @@ export const columns: ColumnDef<DeliverySlip>[] = [
         },
       },
       sort: { field: 'royalty_quantity' },
-      filter: {
-        type: 'number',
-        operators: ['eq', 'neq', 'gt', 'gte', 'lt', 'lte'],
-        field: 'royalty_quantity',
-      },
     },
   },
   {
@@ -333,11 +303,6 @@ export const columns: ColumnDef<DeliverySlip>[] = [
         },
       },
       sort: { field: 'product.name' },
-      filter: {
-        type: 'string',
-        operators: ['eq', 'starts_with', 'contains', 'ends_with'],
-        field: 'product.name',
-      },
     },
   },
   {
@@ -382,11 +347,6 @@ export const columns: ColumnDef<DeliverySlip>[] = [
         },
       },
       sort: { field: 'product_quantity' },
-      filter: {
-        type: 'number',
-        operators: ['eq', 'neq', 'gt', 'gte', 'lt', 'lte'],
-        field: 'product_quantity',
-      },
     },
   },
   // {
@@ -473,7 +433,6 @@ export const columns: ColumnDef<DeliverySlip>[] = [
         class: 'p-0',
         style: {
           width: '5rem',
-          // 'min-width': '12.5rem',
         },
       },
     },
@@ -603,6 +562,16 @@ columnMap.set('remarks', {
   label: 'Remarks',
   icon: {
     component: MessageSquareQuote as any,
+    props: {
+      class: 'text-neutral-700/80 dark:text-neutral-300/80 !size-3.5 mr-0.5',
+    },
+  },
+});
+
+columnMap.set('billed', {
+  label: 'Billed',
+  icon: {
+    component: ReceiptText as any,
     props: {
       class: 'text-neutral-700/80 dark:text-neutral-300/80 !size-3.5 mr-0.5',
     },

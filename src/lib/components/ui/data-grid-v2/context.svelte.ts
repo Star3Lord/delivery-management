@@ -49,20 +49,23 @@ export type FilterOperator =
   | 'is_present'
   | 'is_not_present';
 
-export type FilterDataType = 'string' | 'number' | 'date' | 'enum' | 'boolean';
-
-export type ColumnFilterMeta = {
-  type: FilterDataType;
-  operators: FilterOperator[];
-  field?: string;
-  options?: { label: string; value: string }[];
-};
+export type {
+  FilterDataType,
+  FilterSchemaField,
+  FilterSchema,
+  RelationLoaderMap,
+} from '$lib/server/validation/query';
+import type {
+  FilterSchema,
+  RelationLoaderMap,
+} from '$lib/server/validation/query';
 
 export type FilterCondition = {
   type: 'condition';
   id: string;
-  columnId: string;
-  operator: FilterOperator;
+  fieldKey: string;
+  customJsonKey?: string;
+  operator: FilterOperator | '';
   operand: string;
   enabled: boolean;
 };
@@ -72,6 +75,7 @@ export type FilterGroup = {
   id: string;
   logic: 'and' | 'or';
   children: FilterNode[];
+  enabled?: boolean;
 };
 
 export type FilterNode = FilterCondition | FilterGroup;
@@ -91,6 +95,36 @@ export type ServerFilterGroup = {
 
 export type ServerFilterNode = ServerFilterCondition | ServerFilterGroup;
 
+export const OPERATOR_LABELS: Record<FilterOperator, string> = {
+  eq: 'equals',
+  neq: 'not equals',
+  gt: 'greater than',
+  gte: 'greater or equal',
+  lt: 'less than',
+  lte: 'less or equal',
+  contains: 'contains',
+  not_contains: 'not contains',
+  starts_with: 'starts with',
+  ends_with: 'ends with',
+  is_empty: 'is empty',
+  is_not_empty: 'is not empty',
+  is_present: 'is present',
+  is_not_present: 'is not present',
+};
+
+export const RELATION_OPERATOR_LABELS: Partial<Record<FilterOperator, string>> =
+  {
+    eq: 'is',
+    neq: 'is not',
+  };
+
+export const NO_VALUE_OPERATORS = new Set<FilterOperator>([
+  'is_empty',
+  'is_not_empty',
+  'is_present',
+  'is_not_present',
+]);
+
 let _filterId = 0;
 export function createFilterId(): string {
   return `filter-${++_filterId}`;
@@ -101,32 +135,36 @@ export function createRootFilterGroup(): FilterGroup {
 }
 
 /**
- * Converts a UI `FilterGroup` tree into a `ServerFilterGroup` tree,
- * preserving AND/OR group semantics. Maps `columnId` to the server
- * `field` name via `fieldMap`; falls back to `columnId` when unmapped.
- *
- * Use outside of grid context (e.g. in pages) where `DataGridState`
- * is not accessible.
+ * Converts a UI `FilterGroup` tree into a `ServerFilterGroup` tree.
+ * With schema-driven filters, `fieldKey` already IS the server field path,
+ * so no mapping is needed for standard fields. For JSON custom sub-fields,
+ * the field is constructed from the schema field's group + customJsonKey.
  */
-export function buildServerFilterTree(
-  node: FilterGroup,
-  fieldMap: Map<string, string>
-): ServerFilterGroup {
+export function buildServerFilterTree(node: FilterGroup): ServerFilterGroup {
   return {
     type: 'group',
     logic: node.logic,
     children: node.children
       .map((child): ServerFilterNode | null => {
-        if (child.type === 'condition' && child.enabled && child.operand) {
+        if (
+          child.type === 'condition' &&
+          child.enabled &&
+          child.fieldKey &&
+          child.operator &&
+          (child.operand || NO_VALUE_OPERATORS.has(child.operator))
+        ) {
+          const field = child.customJsonKey
+            ? `${child.fieldKey.split('.')[0]}.${child.customJsonKey}`
+            : child.fieldKey;
           return {
             type: 'condition',
-            field: fieldMap.get(child.columnId) ?? child.columnId,
+            field,
             operator: child.operator,
             value: child.operand,
           };
         }
-        if (child.type === 'group') {
-          const group = buildServerFilterTree(child, fieldMap);
+        if (child.type === 'group' && child.enabled !== false) {
+          const group = buildServerFilterTree(child);
           return group.children.length > 0 ? group : null;
         }
         return null;
@@ -426,12 +464,16 @@ export type DataGridInit<TData> = {
   columns: ColumnDef<TData, unknown>[];
   column_labels?: ColumnLabelMap;
   config?: DataGridConfig;
+  filterSchema?: FilterSchema;
+  relationLoaders?: RelationLoaderMap;
 };
 
 export class DataGridState<TData = unknown> {
   table!: Table<TData>;
   columns: ColumnDef<TData, unknown>[];
   column_labels: ColumnLabelMap | undefined;
+  filterSchema: FilterSchema;
+  relationLoaders: RelationLoaderMap;
 
   layout: ColumnLayout;
 
@@ -527,6 +569,8 @@ export class DataGridState<TData = unknown> {
   constructor(init: DataGridInit<TData>) {
     this.columns = init.columns;
     this.column_labels = init.column_labels;
+    this.filterSchema = init.filterSchema ?? [];
+    this.relationLoaders = init.relationLoaders ?? {};
 
     const cfg = init.config;
     const defaultOrder = init.columns.map(
@@ -573,11 +617,11 @@ export class DataGridState<TData = unknown> {
   );
 
   serverFilters = $derived.by(
-    (): ServerFilterGroup => this.#buildServerFilterTree(this.filterTree)
+    (): ServerFilterGroup => buildServerFilterTree(this.filterTree)
   );
 
   addCondition = (
-    columnId: string,
+    fieldKey: string,
     operator: FilterOperator,
     operand: string,
     parentId = 'root'
@@ -586,7 +630,7 @@ export class DataGridState<TData = unknown> {
     const condition: FilterCondition = {
       type: 'condition',
       id,
-      columnId,
+      fieldKey,
       operator,
       operand,
       enabled: true,
@@ -598,7 +642,10 @@ export class DataGridState<TData = unknown> {
   updateCondition = (
     conditionId: string,
     updates: Partial<
-      Pick<FilterCondition, 'columnId' | 'operator' | 'operand' | 'enabled'>
+      Pick<
+        FilterCondition,
+        'fieldKey' | 'customJsonKey' | 'operator' | 'operand' | 'enabled'
+      >
     >
   ) => {
     this.filterTree = this.#updateNode(this.filterTree, conditionId, updates);
@@ -627,16 +674,8 @@ export class DataGridState<TData = unknown> {
     this.filterTree = createRootFilterGroup();
   };
 
-  getFilterableColumns = (): { id: string; meta: ColumnFilterMeta }[] => {
-    if (!this.table) return [];
-    const result: { id: string; meta: ColumnFilterMeta }[] = [];
-    for (const col of this.table.getAllLeafColumns()) {
-      const meta = (
-        col.columnDef.meta as { filter?: ColumnFilterMeta } | undefined
-      )?.filter;
-      if (meta) result.push({ id: col.id, meta });
-    }
-    return result;
+  getFilterableFields = (): FilterSchema => {
+    return this.filterSchema;
   };
 
   syncHeaderScroll = (event: Event) => {
@@ -726,7 +765,7 @@ export class DataGridState<TData = unknown> {
     for (const child of node.children) {
       if (child.type === 'condition' && child.enabled) {
         result.push({
-          id: child.columnId,
+          id: child.fieldKey,
           value: { operator: child.operator, operand: child.operand },
         });
       } else if (child.type === 'group') {
@@ -734,34 +773,6 @@ export class DataGridState<TData = unknown> {
       }
     }
     return result;
-  }
-
-  #buildServerFilterTree(node: FilterGroup): ServerFilterGroup {
-    return {
-      type: 'group',
-      logic: node.logic,
-      children: node.children
-        .map((child): ServerFilterNode | null => {
-          if (child.type === 'condition' && child.enabled && child.operand) {
-            const col = this.table?.getColumn(child.columnId);
-            const meta = (
-              col?.columnDef?.meta as { filter?: ColumnFilterMeta } | undefined
-            )?.filter;
-            return {
-              type: 'condition',
-              field: meta?.field ?? child.columnId,
-              operator: child.operator,
-              value: child.operand,
-            };
-          }
-          if (child.type === 'group') {
-            const group = this.#buildServerFilterTree(child);
-            return group.children.length > 0 ? group : null;
-          }
-          return null;
-        })
-        .filter((n): n is ServerFilterNode => n != null),
-    };
   }
 
   #insertNode(
@@ -795,7 +806,10 @@ export class DataGridState<TData = unknown> {
     tree: FilterGroup,
     nodeId: string,
     updates: Partial<
-      Pick<FilterCondition, 'columnId' | 'operator' | 'operand' | 'enabled'>
+      Pick<
+        FilterCondition,
+        'fieldKey' | 'customJsonKey' | 'operator' | 'operand' | 'enabled'
+      >
     >
   ): FilterGroup {
     return {
