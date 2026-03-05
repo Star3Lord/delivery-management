@@ -163,8 +163,8 @@ export type ColumnLayoutInit = {
 };
 
 export class ColumnLayout {
-  #columnOrder = $state<ColumnOrderState>([]);
-  #columnPinning = $state<ColumnPinningState>({});
+  #columnOrder = $state.raw<ColumnOrderState>([]);
+  #columnPinning = $state.raw<ColumnPinningState>({});
   #columnVisibility = $state<VisibilityState>({});
   #initialColumnOrder: ColumnOrderState = [];
   #allColumnIds: string[] = [];
@@ -436,13 +436,13 @@ export class DataGridState<TData = unknown> {
   layout: ColumnLayout;
 
   #data = $state.raw<TData[]>([]);
-  filterTree = $state<FilterGroup>(createRootFilterGroup());
+  filterTree = $state.raw<FilterGroup>(createRootFilterGroup());
 
   columnFilters = $derived.by(
     (): ColumnFiltersState => this.#flattenTreeToColumnFilters(this.filterTree)
   );
-  columnSizing = $state<ColumnSizingState>({});
-  columnSizingInfo = $state<ColumnSizingInfoState>({
+  columnSizing = $state.raw<ColumnSizingState>({});
+  columnSizingInfo = $state.raw<ColumnSizingInfoState>({
     columnSizingStart: [],
     deltaOffset: null,
     deltaPercentage: null,
@@ -450,10 +450,10 @@ export class DataGridState<TData = unknown> {
     startOffset: null,
     startSize: null,
   });
-  rowSelection = $state<RowSelectionState>({});
-  sorting = $state<SortingState>([]);
+  rowSelection = $state.raw<RowSelectionState>({});
+  sorting = $state.raw<SortingState>([]);
 
-  headerScrollerEl = $state<HTMLDivElement>();
+  headerScrollerEl: HTMLDivElement | undefined;
 
   columnSizeVars = $derived.by(() => this.#computeColumnSizeVars());
 
@@ -467,26 +467,21 @@ export class DataGridState<TData = unknown> {
     const cache = new Map<string, { style: string; class: string }>();
 
     for (const col of cols) {
-      const meta = col.columnDef?.meta as
-        | Record<string, Record<string, unknown> | string>
-        | undefined;
-      const metaCell = meta?.cell as Record<string, unknown> | undefined;
-      const cellClass = metaCell?.class as string | undefined;
-      const cellStyle = metaCell?.style as CSSStyleDeclaration | undefined;
-
       const leftBorder = this.#borderClassMap.get(col.id)?.left;
       const rightBorder = this.#borderClassMap.get(col.id)?.right ?? 'border-r';
 
       const className = cn(
         'min-h-8 truncate border-b border-border bg-clip-border! px-3 py-1 align-middle text-sm font-medium text-ellipsis [&:has([role=checkbox])]:pr-0',
+        // this.getLeftBorderClass(col),
+        // this.getRightBorderClass(col),
         leftBorder,
         rightBorder,
-        cellClass
+        this.getCellMeta(col)?.class
       );
 
       const style = createStyle({
-        contain: 'strict',
-        ...(cellStyle && cellStyle),
+        contain: 'layout style paint',
+        ...this.getCellMeta(col)?.style,
         width: `calc(var(--col-${col.id}-size) * 1px)`,
         'min-width': `calc(var(--col-${col.id}-size) * 1px)`,
         'max-width': `calc(var(--col-${col.id}-size) * 1px)`,
@@ -573,7 +568,7 @@ export class DataGridState<TData = unknown> {
       ),
       column_sizing: Object.fromEntries(Object.entries(this.columnSizing)),
       sorting: this.sorting.map((s) => ({ id: s.id, desc: s.desc })),
-      filters: $state.snapshot(this.filterTree) as FilterGroup,
+      filters: structuredClone(this.filterTree) as FilterGroup,
     })
   );
 
@@ -692,6 +687,30 @@ export class DataGridState<TData = unknown> {
       'box-sizing': 'border-box',
       isolation: isPinned ? 'isolate' : undefined,
     };
+  }
+
+  getHeaderMeta(column: Column<TData>) {
+    return (
+      column.columnDef?.meta as {
+        header?: {
+          class?: string;
+          style?: CSSStyleDeclaration;
+          [key: string]: unknown;
+        };
+      }
+    )?.header;
+  }
+
+  getCellMeta(column: Column<TData>) {
+    return (
+      column.columnDef?.meta as {
+        cell?: {
+          class?: string;
+          style?: CSSStyleDeclaration;
+          [key: string]: unknown;
+        };
+      }
+    )?.cell;
   }
 
   getRightBorderClass(column: Column<TData>): string {
@@ -828,7 +847,15 @@ export class DataGridState<TData = unknown> {
         vars[`--pin-right-${col.id}`] = col.getAfter('right');
       }
     }
-    return vars;
+    // Keep key insertion order deterministic so style strings stay stable
+    // across pure reorder operations where var values didn't change.
+    const stableVars: Record<string, number> = {};
+    for (const [key, value] of Object.entries(vars).sort(([a], [b]) =>
+      a.localeCompare(b)
+    )) {
+      stableVars[key] = value;
+    }
+    return stableVars;
   }
 }
 

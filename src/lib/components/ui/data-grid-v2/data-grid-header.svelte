@@ -9,23 +9,26 @@
 </script>
 
 <div
-  bind:this={grid.headerScrollerEl}
-  class="overflow-x-hidden border-b border-border will-change-scroll"
+  {@attach (node) => {
+    grid.headerScrollerEl = node as HTMLDivElement;
+    return () => {
+      if (grid.headerScrollerEl === node) {
+        grid.headerScrollerEl = undefined;
+      }
+    };
+  }}
+  class="overflow-x-hidden border-b border-border"
 >
   <TableUI.Root
     class="table-fixed border-separate border-spacing-0 border-border"
-    style={createStyle({
-      width: `${grid.table.getTotalSize()}px`,
-    })}
+    style={`width: ${grid.table.getTotalSize()}px;`}
   >
     <colgroup>
       {#each grid.table.getVisibleLeafColumns() as column (column.id)}
         <col
-          style={createStyle({
-            width: `calc(var(--col-${column.id}-size) * 1px)`,
-            'min-width': `calc(var(--col-${column.id}-size) * 1px)`,
-            'max-width': `calc(var(--col-${column.id}-size) * 1px)`,
-          })}
+          style:width={`calc(var(--col-${column.id}-size) * 1px)`}
+          style:min-width={`calc(var(--col-${column.id}-size) * 1px)`}
+          style:max-width={`calc(var(--col-${column.id}-size) * 1px)`}
         />
       {/each}
     </colgroup>
@@ -34,30 +37,15 @@
       {#each grid.table.getHeaderGroups() as headerGroup (headerGroup.id)}
         <TableUI.Row class="group/row relative border-b-0 border-border">
           {#each headerGroup.headers as header (header.id)}
-            {@const meta = header.column.columnDef?.meta as Record<
-              string,
-              Record<string, unknown> | string
-            >}
-            {@const metaHeader = meta?.header as
-              | Record<string, unknown>
-              | undefined}
-            {@const headerClass = metaHeader?.class as string | undefined}
-            {@const headerStyle = metaHeader?.style as
-              | CSSStyleDeclaration
-              | undefined}
-            {@const headerLeftBorderClass = grid.getLeftBorderClass(
-              header.column
-            )}
-            {@const headerBorderClass = grid.getRightBorderClass(header.column)}
             <TableUI.Head
               class={cn(
                 'h-8 truncate border-t-0 border-b border-border bg-clip-border! px-0 text-left align-middle text-xs font-normal text-muted-foreground capitalize [&:has([role=checkbox])]:pr-0',
-                headerLeftBorderClass,
-                headerBorderClass,
-                headerClass
+                grid.getLeftBorderClass(header.column),
+                grid.getRightBorderClass(header.column),
+                grid.getHeaderMeta(header.column)?.class
               )}
               style={createStyle({
-                ...(headerStyle && headerStyle),
+                ...grid.getHeaderMeta(header.column)?.style,
                 width: `calc(var(--header-${header?.id}-size) * 1px)`,
                 'min-width': `calc(var(--header-${header?.id}-size) * 1px)`,
                 'max-width': `calc(var(--header-${header?.id}-size) * 1px)`,

@@ -1,7 +1,6 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
   import * as TableUI from '$lib/components/ui/table/index.js';
-  import { createStyle } from '$lib/utils.js';
   import { useDataGrid } from './context.svelte';
 
   let {
@@ -18,22 +17,18 @@
     node.addEventListener('scroll', grid.syncHeaderScroll, { passive: true });
     return () => node.removeEventListener('scroll', grid.syncHeaderScroll);
   }}
-  class="relative overflow-x-auto"
+  class="relative overflow-x-auto overflow-y-clip"
 >
   <TableUI.Root
     class="table-fixed border-separate border-spacing-0 border-border"
-    style={createStyle({
-      width: `${grid.table.getTotalSize()}px`,
-    })}
+    style={`width: ${grid.table.getTotalSize()}px;`}
   >
     <colgroup>
       {#each grid.table.getVisibleLeafColumns() as column (column.id)}
         <col
-          style={createStyle({
-            width: `calc(var(--col-${column.id}-size) * 1px)`,
-            'min-width': `calc(var(--col-${column.id}-size) * 1px)`,
-            'max-width': `calc(var(--col-${column.id}-size) * 1px)`,
-          })}
+          style:width={`calc(var(--col-${column.id}-size) * 1px)`}
+          style:min-width={`calc(var(--col-${column.id}-size) * 1px)`}
+          style:max-width={`calc(var(--col-${column.id}-size) * 1px)`}
         />
       {/each}
     </colgroup>
