@@ -16,8 +16,8 @@ import {
   renderComponent,
   renderSnippet,
 } from '$lib/components/ui/data-table/index.js';
-import DataTableColumnHeader from '$lib/components/ui/data-grid-v2/column-header.svelte';
-import DataTableCheckbox from '$lib/components/ui/data-grid-v2/checkbox.svelte';
+import DataTableColumnHeader from '$lib/components/ui/data-grid/column-header.svelte';
+import DataTableCheckbox from '$lib/components/ui/data-grid/checkbox.svelte';
 import DataTableActions from './data-table-actions.svelte';
 import DateCell from './cell/date.svelte';
 import PartyCell from './cell/party.svelte';

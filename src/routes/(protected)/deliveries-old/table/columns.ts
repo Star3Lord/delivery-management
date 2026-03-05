@@ -19,7 +19,7 @@ import {
 import {
   ColumnHeader as DataTableColumnHeader,
   Checkbox as DataTableCheckbox,
-} from '$lib/components/ui/data-grid/index.js';
+} from '$lib/components/ui/data-grid-old/index.js';
 import DataTableActions from './data-table-actions.svelte';
 import DateCell from './cell/date.svelte';
 import PartyCell from './cell/party.svelte';

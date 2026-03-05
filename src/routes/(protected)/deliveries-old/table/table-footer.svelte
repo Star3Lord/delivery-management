@@ -3,7 +3,7 @@
   import type { Table } from '@tanstack/table-core';
   import * as Select from '$lib/components/ui/select/index.js';
   import { Separator } from '$lib/components/ui/separator/index.js';
-  import { useTableConfig } from '$lib/components/ui/data-grid/index.js';
+  import { useTableConfig } from '$lib/components/ui/data-grid-old/index.js';
 
   interface Props {
     table: Table<any>;

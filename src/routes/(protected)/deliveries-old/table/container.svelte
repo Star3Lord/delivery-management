@@ -8,7 +8,7 @@
     setTableConfig,
     type DataFetchMode,
     type InfiniteTrigger,
-  } from '$lib/components/ui/data-grid/index.js';
+  } from '$lib/components/ui/data-grid-old/index.js';
 
   import { columns } from './columns';
   import ContainerPagination from './container-pagination.svelte';

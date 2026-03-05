@@ -3,8 +3,8 @@
   import ChevronRightIcon from '@lucide/svelte/icons/chevron-right';
   import { list_delivery_slips } from '$lib/api/delivery-slips.remote';
   import { Button } from '$lib/components/ui/button/index.js';
-  import { DataGrid } from '$lib/components/ui/data-grid/index.js';
-  import { useTableConfig } from '$lib/components/ui/data-grid/index.js';
+  import { DataGrid } from '$lib/components/ui/data-grid-old/index.js';
+  import { useTableConfig } from '$lib/components/ui/data-grid-old/index.js';
   import { Input } from '$lib/components/ui/input/index.js';
 
   import { columns, columnMap } from './columns';

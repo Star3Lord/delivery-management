@@ -11,7 +11,7 @@
   import { Button } from '$lib/components/ui/button/index.js';
   import * as DropdownMenu from '$lib/components/ui/dropdown-menu/index.js';
   import { cn } from '$lib/utils.js';
-  import { useDataGrid } from './context.svelte';
+  import { useColumnState } from './context.svelte';
 
   let {
     label,
@@ -30,8 +30,7 @@
     column: Column<TData, TValue>;
   } = $props();
 
-  const grid = useDataGrid();
-  const columnState = grid.layout;
+  let columnState = useColumnState();
 
   const moveLeft = () => {
     columnState.moveColumnLeft(column.id);

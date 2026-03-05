@@ -1,19 +1,34 @@
-export { default as DataGrid } from './data-grid.svelte';
-export { default as DataGridProvider } from './data-grid-provider.svelte';
-export { default as ColumnHeader } from './column-header.svelte';
-export { default as ColumnResizer } from './column-resizer.svelte';
-export { default as ColumnVisibility } from './column-visibility.svelte';
-export { default as ViewSettings } from './view-settings.svelte';
-export { default as Checkbox } from './checkbox.svelte';
+export { default as Root } from './data-grid-root.svelte';
+export { default as Header } from './data-grid-header.svelte';
+export { default as Content } from './data-grid-content.svelte';
+export { default as Body } from './data-grid-body.svelte';
+export { default as Loading } from './data-grid-loading.svelte';
+export { default as Empty } from './data-grid-empty.svelte';
+export { default as Footer } from './data-grid-footer.svelte';
 
 export {
-  setColumnState,
-  useColumnState,
-  setTableConfig,
-  useTableConfig,
-  TableConfig,
-  type ColumnStateProps,
+  useDataGrid,
+  DataGridState,
+  ColumnLayout,
+  createFilterId,
+  createRootFilterGroup,
+  buildServerFilterTree,
+  OPERATOR_LABELS,
+  RELATION_OPERATOR_LABELS,
+  NO_VALUE_OPERATORS,
+  type DataGridConfig,
   type ColumnLabelMap,
-  type DataFetchMode,
-  type InfiniteTrigger,
+  type ColumnLayoutInit,
+  type DataGridInit,
+  type FilterOperator,
+  type FilterDataType,
+  type FilterSchemaField,
+  type FilterSchema,
+  type RelationLoaderMap,
+  type FilterCondition,
+  type FilterGroup,
+  type FilterNode,
+  type ServerFilterCondition,
+  type ServerFilterGroup,
+  type ServerFilterNode,
 } from './context.svelte';

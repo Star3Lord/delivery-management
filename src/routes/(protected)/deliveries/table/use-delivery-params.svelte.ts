@@ -1,5 +1,5 @@
 import { list_delivery_slips_v2 } from '$lib/api/delivery-slips.remote';
-import { useDataGrid } from '$lib/components/ui/data-grid-v2/index.js';
+import { useDataGrid } from '$lib/components/ui/data-grid/index.js';
 
 export type ListParams = Parameters<typeof list_delivery_slips_v2>[0];
 export type ListResult = Awaited<ReturnType<typeof list_delivery_slips_v2>>;

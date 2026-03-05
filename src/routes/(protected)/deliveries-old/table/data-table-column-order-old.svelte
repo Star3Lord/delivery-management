@@ -3,7 +3,7 @@
   import { onMount, onDestroy, type Snippet } from 'svelte';
   import { createSwapy, type Swapy } from 'swapy';
   import * as Popover from '$lib/components/ui/popover';
-  import { useColumnState } from '$lib/components/ui/data-grid/context.svelte';
+  import { useColumnState } from '$lib/components/ui/data-grid-old/context.svelte';
   import { ColumnOrdering } from '@tanstack/table-core';
 
   let {

@@ -1,6 +1,6 @@
 <script lang="ts">
   import { FlexRender } from '$lib/components/ui/data-table/index.js';
-  import ColumnResizer from '$lib/components/ui/data-grid-v2/column-resizer.svelte';
+  import ColumnResizer from '$lib/components/ui/data-grid/column-resizer.svelte';
   import * as TableUI from '$lib/components/ui/table/index.js';
   import { cn, createStyle } from '$lib/utils.js';
   import { useDataGrid } from './context.svelte';

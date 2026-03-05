@@ -14,7 +14,7 @@
   import { Separator } from '$lib/components/ui/separator';
   import { reorder } from '$lib/hooks/use-sortable.svelte';
   import { cn } from '$lib/utils';
-  import { useColumnState } from '$lib/components/ui/data-grid/context.svelte';
+  import { useColumnState } from '$lib/components/ui/data-grid-old/context.svelte';
 
   let {
     trigger,

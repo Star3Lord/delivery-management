@@ -4,7 +4,7 @@
   import ChevronsDownIcon from '@lucide/svelte/icons/chevrons-down';
   import { Button } from '$lib/components/ui/button/index.js';
   import { list_delivery_slips_v2 } from '$lib/api/delivery-slips.remote';
-  import * as Grid from '$lib/components/ui/data-grid-v2/index.js';
+  import * as Grid from '$lib/components/ui/data-grid/index.js';
   import * as Select from '$lib/components/ui/select/index.js';
   import { Separator } from '$lib/components/ui/separator/index.js';
   import { createInfiniteQuery } from '@tanstack/svelte-query';

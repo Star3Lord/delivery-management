@@ -10,7 +10,7 @@
   import * as Select from '$lib/components/ui/select/index.js';
   import * as ToggleGroup from '$lib/components/ui/toggle-group/index.js';
   import { Label } from '$lib/components/ui/label/index.js';
-  import { useTableConfig } from '$lib/components/ui/data-grid/index.js';
+  import { useTableConfig } from '$lib/components/ui/data-grid-old/index.js';
 
   interface Props {
     is_refreshing?: boolean;

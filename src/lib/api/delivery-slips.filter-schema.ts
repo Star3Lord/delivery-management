@@ -1,4 +1,4 @@
-import type { FilterSchema } from '$lib/components/ui/data-grid-v2/index.js';
+import type { FilterSchema } from '$lib/components/ui/data-grid/index.js';
 
 export const delivery_slip_filter_schema: FilterSchema = [
   {
