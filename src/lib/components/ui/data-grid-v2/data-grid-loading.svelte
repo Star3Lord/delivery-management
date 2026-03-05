@@ -1,6 +1,5 @@
 <script lang="ts">
   import { Skeleton } from '$lib/components/ui/skeleton/index.js';
-  import { Spinner } from '$lib/components/ui/spinner/index.js';
   import * as TableUI from '$lib/components/ui/table/index.js';
   import { cn, createStyle } from '$lib/utils.js';
   import { useDataGrid } from './context.svelte';

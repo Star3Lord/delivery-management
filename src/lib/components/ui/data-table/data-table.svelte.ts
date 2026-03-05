@@ -52,7 +52,7 @@ export function createSvelteTable<TData extends RowData>(
   );
 
   const table = createTable(resolvedOptions);
-  let state = $state<TableState>(table.initialState);
+  let state = $state.raw<TableState>(table.initialState);
 
   function updateOptions() {
     table.setOptions(() => {

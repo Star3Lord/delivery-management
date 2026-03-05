@@ -20,12 +20,10 @@
     columns: ColumnDef<TData, TValue>[];
     column_labels?: ColumnLabelMap;
     config?: DataGridConfig;
-    onConfigChange?: (config: DataGridConfig) => void;
     children: Snippet;
   };
 
-  let { columns, column_labels, config, onConfigChange, children }: RootProps =
-    $props();
+  let { columns, column_labels, config, children }: RootProps = $props();
 
   const grid = untrack(
     () =>
@@ -63,28 +61,53 @@
     enableSortingRemoval: false,
     getSortedRowModel: getSortedRowModel(),
     onSortingChange: (u) => {
-      grid.sorting = applyUpdater(u, grid.sorting);
+      grid.sorting = applyUpdater(
+        u,
+        untrack(() => grid.sorting)
+      );
     },
-    onColumnOrderChange: (u) => {
-      grid.layout.setOrder(applyUpdater(u, grid.layout.order));
+    onColumnOrderChange: (updater) => {
+      if (typeof updater === 'function') {
+        grid.layout.setOrder(updater(untrack(() => grid.layout.order)));
+      } else {
+        grid.layout.setOrder(updater);
+      }
     },
     enableColumnPinning: true,
-    onColumnPinningChange: (u) => {
-      grid.layout.setPinning(applyUpdater(u, grid.layout.pinning));
+    onColumnPinningChange: (updater) => {
+      if (typeof updater === 'function') {
+        grid.layout.setPinning(updater(untrack(() => grid.layout.pinning)));
+      } else {
+        grid.layout.setPinning(updater);
+      }
     },
     enableColumnResizing: true,
     columnResizeMode,
     onColumnSizingChange: (u) => {
-      grid.columnSizing = applyUpdater(u, grid.columnSizing);
+      grid.columnSizing = applyUpdater(
+        u,
+        untrack(() => grid.columnSizing)
+      );
     },
     onColumnSizingInfoChange: (u) => {
-      grid.columnSizingInfo = applyUpdater(u, grid.columnSizingInfo);
+      grid.columnSizingInfo = applyUpdater(
+        u,
+        untrack(() => grid.columnSizingInfo)
+      );
     },
     onColumnVisibilityChange: (u) => {
-      grid.layout.setVisibility(applyUpdater(u, grid.layout.visibility));
+      grid.layout.setVisibility(
+        applyUpdater(
+          u,
+          untrack(() => grid.layout.visibility)
+        )
+      );
     },
     onRowSelectionChange: (u) => {
-      grid.rowSelection = applyUpdater(u, grid.rowSelection);
+      grid.rowSelection = applyUpdater(
+        u,
+        untrack(() => grid.rowSelection)
+      );
     },
     state: {
       get columnFilters() {
@@ -116,12 +139,11 @@
 
   grid.table = table;
   setDataGrid(grid);
-
-  $effect(() => {
-    onConfigChange?.(grid.config);
-  });
 </script>
 
-<div class="flex min-h-fit w-full grow flex-col" style={createStyle(grid.columnSizeVars)}>
+<div
+  class="flex min-h-fit w-full grow flex-col"
+  style={createStyle(grid.columnSizeVars)}
+>
   {@render children()}
 </div>
