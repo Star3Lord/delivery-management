@@ -22,10 +22,12 @@
   import Toolbar from './toolbar.svelte';
   import TableWithPagination from './table-with-pagination.svelte';
   import TableWithInfinite from './table-with-infinite.svelte';
+  import CreateDialog from '../create/create-dialog.svelte';
 
   let limit = $state(20);
   let refresh = $state<() => void>(() => {});
   let refreshing = $state(false);
+  let create_dialog_open = $state(false);
 
   async function handle_refresh() {
     if (refreshing) return;
@@ -81,7 +83,11 @@
   }}
 >
   <div class="sticky top-0 z-40 bg-background">
-    <Toolbar bind:mode {...{ handle_refresh, refreshing }} />
+    <Toolbar
+      bind:mode
+      {...{ handle_refresh, refreshing }}
+      onCreateNew={() => (create_dialog_open = true)}
+    />
 
     <Grid.Header />
   </div>
@@ -92,3 +98,5 @@
     <TableWithPagination bind:limit bind:refresh />
   {/if}
 </Grid.Root>
+
+<CreateDialog bind:open={create_dialog_open} onSuccess={handle_refresh} />

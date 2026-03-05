@@ -4,6 +4,7 @@
   import ColumnsThree from '@lucide/svelte/icons/columns-3';
   import FilterIcon from '@lucide/svelte/icons/filter';
   import RefreshCwIcon from '@lucide/svelte/icons/refresh-cw';
+  import PlusIcon from '@lucide/svelte/icons/plus';
   import type { Table } from '@tanstack/table-core';
   import type { Snippet } from 'svelte';
   import { Button } from '$lib/components/ui/button/index.js';
@@ -18,10 +19,12 @@
     mode = $bindable<'infinite' | 'pagination'>('pagination'),
     handle_refresh,
     refreshing,
+    onCreateNew,
   }: {
     mode: 'infinite' | 'pagination';
     handle_refresh: () => void;
     refreshing: boolean;
+    onCreateNew?: () => void;
   } = $props();
 
   const grid = useDataGrid();
@@ -73,6 +76,17 @@
       {/snippet}
     </ViewSettings>
     {@render refreshButton()}
+    {#if onCreateNew}
+      <Button
+        variant="default"
+        size="sm"
+        class="gap-1.5 text-xs font-medium has-[>svg]:pr-3"
+        onclick={onCreateNew}
+      >
+        <PlusIcon class="size-3.5" />
+        New
+      </Button>
+    {/if}
     <ButtonGroup class="ml-auto h-8 rounded-md border border-border">
       <Button
         variant={mode === 'infinite' ? 'secondary' : 'ghost'}
