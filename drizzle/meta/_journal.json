@@ -15,6 +15,20 @@
       "when": 1772472089962,
       "tag": "0001_shocking_silver_fox",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1773158182102,
+      "tag": "0002_unique_gladiator",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1773158316018,
+      "tag": "0003_past_thunderbolt_ross",
+      "breakpoints": true
     }
   ]
 }

@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { asc, eq } from 'drizzle-orm';
 import * as v from 'valibot';
 import { query, form, command } from '$app/server';
 import { db } from '$lib/server/db';
@@ -13,6 +13,20 @@ export const list_vehicles = query(
     return vehicles;
   }
 );
+
+export const list_all_vehicles = query(async () => {
+  const vehicles = await db
+    .select({
+      id: vehicle.id,
+      number_plate: vehicle.number_plate,
+      vehicle_type: vehicle.vehicle_type,
+      created_at: vehicle.created_at,
+      updated_at: vehicle.updated_at,
+    })
+    .from(vehicle)
+    .orderBy(asc(vehicle.number_plate));
+  return vehicles;
+});
 
 export const get_vehicle = query(
   v.object({

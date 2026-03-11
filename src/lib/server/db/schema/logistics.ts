@@ -34,20 +34,22 @@ export const delivery_slip = crusher_schema.table(
     id: uuid('id')
       .default(sql`uuidv7()`)
       .primaryKey(),
-    external_id: text('external_id').notNull().unique(),
     date: date('date').notNull(),
     party_id: uuid('party_id').references(() => customer.id),
     vehicle_id: uuid('vehicle_id').references(() => vehicle.id),
-    royalty_number: text('royalty_number').notNull(),
+    royalty_number: text('royalty_number'),
     royalty_quantity: decimal('royalty_quantity', {
       precision: 10,
       scale: 2,
-    }).notNull(),
-    royalty_quantity_unit: text('royalty_quantity_unit').notNull(),
+    }),
+    royalty_quantity_unit: text('royalty_quantity_unit'),
     product_id: uuid('product_id').references(() => product.id),
-    product_quantity: decimal('product_quantity', { precision: 10, scale: 2 }),
+    product_quantity: decimal('product_quantity', {
+      precision: 10,
+      scale: 2,
+    }).notNull(),
     product_quantity_unit: text('product_quantity_unit').notNull(),
-    state: delivery_slip_state('state').notNull().default('pending'),
+    state: delivery_slip_state('state').notNull().default('pending').notNull(),
     ...timestamps,
     ...metadata,
   },

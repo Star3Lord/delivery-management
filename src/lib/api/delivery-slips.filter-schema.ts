@@ -2,12 +2,6 @@ import type { FilterSchema } from '$lib/components/ui/data-grid/index.js';
 
 export const delivery_slip_filter_schema: FilterSchema = [
   {
-    key: 'external_id',
-    label: 'Slip No.',
-    type: 'string',
-    operators: ['eq', 'starts_with', 'contains', 'ends_with'],
-  },
-  {
     key: 'date',
     label: 'Date',
     type: 'date',

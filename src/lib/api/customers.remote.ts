@@ -14,6 +14,21 @@ export const list_customers = query(
   }
 );
 
+export const list_all_customers = query(async () => {
+  const customers = await db
+    .select({
+      id: customer.id,
+      name: customer.name,
+      address: customer.address,
+      phone: customer.phone,
+      email: customer.email,
+      created_at: customer.created_at,
+      updated_at: customer.updated_at,
+    })
+    .from(customer);
+  return customers;
+});
+
 export const get_customer = query(
   v.object({
     id: v.string(),

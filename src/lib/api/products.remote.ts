@@ -14,6 +14,18 @@ export const list_products = query(
   }
 );
 
+export const list_all_products = query(async () => {
+  const products = await db
+    .select({
+      id: product.id,
+      name: product.name,
+      created_at: product.created_at,
+      updated_at: product.updated_at,
+    })
+    .from(product);
+  return products;
+});
+
 export const get_product = query(
   v.object({
     id: v.string(),
