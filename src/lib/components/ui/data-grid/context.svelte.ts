@@ -134,6 +134,16 @@ export function createRootFilterGroup(): FilterGroup {
   return { type: 'group', id: 'root', logic: 'and', children: [] };
 }
 
+function countActiveConditions(node: FilterNode): number {
+  if (node.type === 'condition') {
+    return node.enabled && node.operator && node.fieldKey ? 1 : 0;
+  }
+  return node.children.reduce(
+    (sum, child) => sum + countActiveConditions(child),
+    0
+  );
+}
+
 /**
  * Converts a UI `FilterGroup` tree into a `ServerFilterGroup` tree.
  * With schema-driven filters, `fieldKey` already IS the server field path,
@@ -483,6 +493,8 @@ export class DataGridState<TData = unknown> {
   columnFilters = $derived.by(
     (): ColumnFiltersState => this.#flattenTreeToColumnFilters(this.filterTree)
   );
+
+  activeFilterCount = $derived.by(() => countActiveConditions(this.filterTree));
   columnSizing = $state.raw<ColumnSizingState>({});
   columnSizingInfo = $state.raw<ColumnSizingInfoState>({
     columnSizingStart: [],

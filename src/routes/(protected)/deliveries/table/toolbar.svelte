@@ -7,6 +7,7 @@
   import PlusIcon from '@lucide/svelte/icons/plus';
   import type { Table } from '@tanstack/table-core';
   import type { Snippet } from 'svelte';
+  import { Badge } from '$lib/components/ui/badge/index.js';
   import { Button } from '$lib/components/ui/button/index.js';
   import { ButtonGroup } from '$lib/components/ui/button-group/index.js';
   import { Input } from '$lib/components/ui/input/index.js';
@@ -28,6 +29,8 @@
   } = $props();
 
   const grid = useDataGrid();
+
+  let filter_value = $state('');
 </script>
 
 {#snippet refreshButton()}
@@ -47,13 +50,9 @@
   <div class="flex items-center gap-2">
     <Input
       placeholder="Filter slip number…"
-      value={(grid.table
-        .getColumn('external_id')
-        ?.getFilterValue() as string) ?? ''}
+      value={filter_value}
       oninput={(e) => {
-        grid.table
-          .getColumn('external_id')
-          ?.setFilterValue(e.currentTarget.value);
+        filter_value = e.currentTarget.value;
       }}
       class="max-w-sm"
     />
@@ -62,6 +61,15 @@
         <Button {...props} variant="outline" class="h-8">
           <FilterIcon class="size-3" />
           Filter
+          {#if grid.activeFilterCount > 0}
+            <Badge
+              class="h-5 min-w-5 rounded-full px-1 font-mono text-[10px] tabular-nums"
+              variant="outline"
+            >
+              {grid.activeFilterCount}
+              {grid.activeFilterCount > 10 ? '+' : ''}
+            </Badge>
+          {/if}
         </Button>
       {/snippet}
     </FilterSettings>

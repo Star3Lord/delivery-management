@@ -18,7 +18,5 @@
 <div class="space-y-1.5 {className}">
   <Label class="text-xs font-medium text-muted-foreground">{label}</Label>
   {@render children()}
-  {#each issues as issue, i (i)}
-    <p class="text-xs text-destructive">{issue.message}</p>
-  {/each}
+  <p class="text-xs text-destructive">{issues?.[0]?.message}</p>
 </div>

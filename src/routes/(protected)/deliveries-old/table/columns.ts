@@ -85,30 +85,30 @@ export const columns: ColumnDef<DeliverySlip>[] = [
       },
     },
   },
-  {
-    accessorKey: 'external_id',
-    header: ({ column }) => {
-      return renderComponent(DataTableColumnHeader<DeliverySlip, unknown>, {
-        label: 'Slip No.',
-        column,
-        icon: {
-          component: Hash as any,
-          props: {
-            class:
-              'text-neutral-700/80 dark:text-neutral-300/80 !size-3.5 mr-0.5',
-          },
-        },
-      });
-    },
-    meta: {
-      header: {
-        class: 'p-0',
-        style: {
-          'min-width': '12.5rem',
-        },
-      },
-    },
-  },
+  // {
+  //   accessorKey: 'external_id',
+  //   header: ({ column }) => {
+  //     return renderComponent(DataTableColumnHeader<DeliverySlip, unknown>, {
+  //       label: 'Slip No.',
+  //       column,
+  //       icon: {
+  //         component: Hash as any,
+  //         props: {
+  //           class:
+  //             'text-neutral-700/80 dark:text-neutral-300/80 !size-3.5 mr-0.5',
+  //         },
+  //       },
+  //     });
+  //   },
+  //   meta: {
+  //     header: {
+  //       class: 'p-0',
+  //       style: {
+  //         'min-width': '12.5rem',
+  //       },
+  //     },
+  //   },
+  // },
   {
     accessorKey: 'date',
     header: ({ column }) => {
@@ -463,15 +463,15 @@ export const columns: ColumnDef<DeliverySlip>[] = [
 
 export const columnMap = new Map();
 
-columnMap.set('external_id', {
-  label: 'Slip No.',
-  icon: {
-    component: Hash as any,
-    props: {
-      class: 'text-neutral-700/80 dark:text-neutral-300/80 !size-3.5 mr-0.5',
-    },
-  },
-});
+// columnMap.set('external_id', {
+//   label: 'Slip No.',
+//   icon: {
+//     component: Hash as any,
+//     props: {
+//       class: 'text-neutral-700/80 dark:text-neutral-300/80 !size-3.5 mr-0.5',
+//     },
+//   },
+// });
 
 columnMap.set('date', {
   label: 'Date',

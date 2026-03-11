@@ -11,7 +11,10 @@
   import { Input } from '$lib/components/ui/input/index.js';
   import { ButtonGroup } from '$lib/components/ui/button-group/index.js';
   import * as Grid from '$lib/components/ui/data-grid/index.js';
-  import type { RelationLoaderMap } from '$lib/components/ui/data-grid/index.js';
+  import type {
+    RelationLoaderMap,
+    FilterGroup,
+  } from '$lib/components/ui/data-grid/index.js';
   import FilterSettings from '$lib/components/ui/data-grid/column-filter-settings.svelte';
   import { delivery_slip_filter_schema } from '$lib/api/delivery-slips.filter-schema';
   import { list_customers } from '$lib/api/customers.remote';
@@ -50,6 +53,22 @@
     right: ['table-row-actions'],
   };
 
+  const defaultFilters: FilterGroup = {
+    type: 'group',
+    id: 'root',
+    logic: 'and',
+    children: [
+      {
+        type: 'condition',
+        id: 'default-exclude-discarded',
+        fieldKey: 'state',
+        operator: 'neq',
+        operand: 'discarded',
+        enabled: true,
+      },
+    ],
+  };
+
   const relationLoaders: RelationLoaderMap = {
     customer: async () => {
       const result = await list_customers({ limit: 500 });
@@ -79,7 +98,8 @@
     },
     column_visibility: {},
     column_sizing: {},
-    sorting: [],
+    sorting: [{ id: 'date', desc: true }],
+    filters: defaultFilters,
   }}
 >
   <div class="sticky top-0 z-40 bg-background">

@@ -21,7 +21,7 @@
         <div class="min-w-0 flex-1">
           <div class="flex items-baseline gap-2">
             <span class="font-mono text-xs text-foreground/80">
-              {row.external_id}
+              {row.id}
             </span>
             <span class="text-xs text-muted-foreground/40">{row.date}</span>
           </div>

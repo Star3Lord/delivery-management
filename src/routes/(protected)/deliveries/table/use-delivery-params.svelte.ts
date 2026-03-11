@@ -6,10 +6,6 @@ export type ListResult = Awaited<ReturnType<typeof list_delivery_slips_v2>>;
 
 export const LIMIT_OPTIONS = [10, 20, 50, 100] as const;
 
-const DEFAULT_SORT: ListParams['order_by'] = [
-  { column: 'date', direction: 'desc' },
-];
-
 /**
  * Derives `server_filters` and `server_sort` from the data-grid context.
  * Must be called during component initialisation (reads Svelte context).
@@ -32,20 +28,18 @@ export function useDeliveryListParams() {
   );
 
   const server_sort = $derived(
-    grid.sorting.length > 0
-      ? (grid.sorting
-          .map((s) => {
-            const field = sort_field_map.get(s.id);
-            if (!field) return null;
-            return {
-              column: field,
-              direction: s.desc ? ('desc' as const) : ('asc' as const),
-            };
-          })
-          .filter(
-            (s): s is NonNullable<typeof s> => s !== null
-          ) as ListParams['order_by'])
-      : DEFAULT_SORT
+    grid.sorting
+      .map((s) => {
+        const field = sort_field_map.get(s.id);
+        if (!field) return null;
+        return {
+          column: field,
+          direction: s.desc ? ('desc' as const) : ('asc' as const),
+        };
+      })
+      .filter(
+        (s): s is NonNullable<typeof s> => s !== null
+      ) as ListParams['order_by']
   );
 
   return {

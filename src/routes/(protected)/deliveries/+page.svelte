@@ -1,6 +1,7 @@
 <script lang="ts">
   import PageHeader from '$lib/components/page-header.svelte';
   import * as Breadcrumb from '$lib/components/ui/breadcrumb/index.js';
+  import Chart from './chart.svelte';
 
   import Container from './table/container.svelte';
 </script>
@@ -17,6 +18,10 @@
       </Breadcrumb.Root>
     {/snippet}
   </PageHeader>
+
+  <div class="w-full p-6">
+    <!-- <Chart /> -->
+  </div>
 
   <div class="flex min-h-[calc(100%-var(--header-height))] flex-col">
     <Container />

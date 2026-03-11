@@ -44,9 +44,12 @@ export class RenderComponentConfig<TComponent extends Component> {
  * ```
  */
 export class RenderSnippetConfig<TProps> {
-  snippet: Snippet<[TProps]>;
+  snippet: Snippet<[TProps]> | ((params: TProps) => ReturnType<Snippet>);
   params: TProps;
-  constructor(snippet: Snippet<[TProps]>, params: TProps) {
+  constructor(
+    snippet: Snippet<[TProps]> | ((params: TProps) => ReturnType<Snippet>),
+    params: TProps
+  ) {
     this.snippet = snippet;
     this.params = params;
   }
@@ -107,7 +110,7 @@ export function renderComponent<
  * @see {@link https://tanstack.com/table/latest/docs/guide/column-defs}
  */
 export function renderSnippet<TProps>(
-  snippet: Snippet<[TProps]>,
+  snippet: Snippet<[TProps]> | ((params: TProps) => ReturnType<Snippet>),
   params: TProps = {} as TProps
 ) {
   return new RenderSnippetConfig(snippet, params);

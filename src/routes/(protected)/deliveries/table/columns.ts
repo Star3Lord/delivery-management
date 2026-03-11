@@ -1,16 +1,16 @@
 import type { ColumnDef } from '@tanstack/table-core';
-import BrickWall from '@lucide/svelte/icons/brick-wall';
-import Calendar from '@lucide/svelte/icons/calendar';
-import Handshake from '@lucide/svelte/icons/handshake';
-import Hash from '@lucide/svelte/icons/hash';
-import Lock from '@lucide/svelte/icons/lock';
-import MessageSquareQuote from '@lucide/svelte/icons/message-square-quote';
-import Package from '@lucide/svelte/icons/package';
-import ReceiptText from '@lucide/svelte/icons/receipt-text';
-import Stamp from '@lucide/svelte/icons/stamp';
-import Truck from '@lucide/svelte/icons/truck';
-import Weight from '@lucide/svelte/icons/weight';
-import CircleDot from '@lucide/svelte/icons/circle-dot';
+import BrickWallIcon from '@lucide/svelte/icons/brick-wall';
+import CalendarIcon from '@lucide/svelte/icons/calendar';
+import HandshakeIcon from '@lucide/svelte/icons/handshake';
+import HashIcon from '@lucide/svelte/icons/hash';
+import LockIcon from '@lucide/svelte/icons/lock';
+import MessageSquareQuoteIcon from '@lucide/svelte/icons/message-square-quote';
+import PackageIcon from '@lucide/svelte/icons/package';
+import ReceiptTextIcon from '@lucide/svelte/icons/receipt-text';
+import StampIcon from '@lucide/svelte/icons/stamp';
+import TruckIcon from '@lucide/svelte/icons/truck';
+import WeightIcon from '@lucide/svelte/icons/weight';
+import CircleDotIcon from '@lucide/svelte/icons/circle-dot';
 import { createRawSnippet, mount, hydrate } from 'svelte';
 import {
   renderComponent,
@@ -23,24 +23,130 @@ import DateCell from './cell/date.svelte';
 import PartyCell from './cell/party.svelte';
 import VehicleCell from './cell/vehicle.svelte';
 import ProductCell from './cell/product.svelte';
+import {
+  deliveryState,
+  deliveryRemarks,
+  deliveryRoyaltyNumber,
+  deliveryQuantity,
+  deliveryBilled,
+} from './cell/others.svelte';
 import type { DeliverySlip } from '$lib/api/delivery-slips.remote';
 
-const billedCellSnippet = createRawSnippet<[{ state: DeliverySlip['state'] }]>(
-  (get_state) => {
-    const value = get_state();
-    return {
-      render: () => `<div></div>`,
-      setup(target) {
-        if (value.state === 'billed') {
-          hydrate(Lock, {
-            target: target,
-            props: { class: 'text-sky-500 size-4' },
-          });
-        }
-      },
-    };
-  }
-);
+export const columnMap = new Map();
+
+const header_icon_class =
+  'text-neutral-700/80 dark:text-neutral-300/80 !size-3.5 mr-0.5';
+
+// columnMap.set('external_id', {
+//   label: 'Slip No.',
+//   icon: {
+//     component: Hash as any,
+//     props: {
+//       class: 'text-neutral-700/80 dark:text-neutral-300/80 !size-3.5 mr-0.5',
+//     },
+//   },
+// });
+
+columnMap.set('date', {
+  label: 'Date',
+  icon: {
+    component: CalendarIcon as any,
+    props: {
+      class: header_icon_class,
+    },
+  },
+});
+
+columnMap.set('vehicle', {
+  label: 'Vehicle',
+  icon: {
+    component: TruckIcon as any,
+    props: {
+      class: header_icon_class,
+    },
+  },
+});
+
+columnMap.set('party', {
+  label: 'Party',
+  icon: {
+    component: HandshakeIcon as any,
+    props: {
+      class: header_icon_class,
+    },
+  },
+});
+
+columnMap.set('product', {
+  label: 'Product',
+  icon: {
+    component: PackageIcon as any,
+    props: {
+      class: header_icon_class,
+    },
+  },
+});
+
+columnMap.set('product_quantity', {
+  label: 'Product Qty',
+  icon: {
+    // component: BrickWall as any,
+    component: WeightIcon as any,
+    props: {
+      class: header_icon_class,
+    },
+  },
+});
+
+columnMap.set('royalty_number', {
+  label: 'Royalty',
+  icon: {
+    component: StampIcon as any,
+    props: {
+      class: header_icon_class,
+    },
+  },
+});
+
+columnMap.set('royalty_quantity', {
+  label: 'Royalty Qty',
+  icon: {
+    component: WeightIcon as any,
+    props: {
+      class: header_icon_class,
+    },
+  },
+});
+
+columnMap.set('state', {
+  label: 'State',
+  icon: {
+    component: CircleDotIcon as any,
+    props: {
+      class: header_icon_class,
+    },
+  },
+});
+
+columnMap.set('remarks', {
+  label: 'Remarks',
+  icon: {
+    component: MessageSquareQuoteIcon as any,
+    props: {
+      class: header_icon_class,
+    },
+  },
+});
+
+// columnMap.set('billed', {
+//   label: 'Billed',
+//   icon: {
+//     component: ReceiptText as any,
+//     props: {
+//       class: icon_class,
+//     },
+//   },
+// });
 
 export const columns: ColumnDef<DeliverySlip>[] = [
   {
@@ -83,44 +189,37 @@ export const columns: ColumnDef<DeliverySlip>[] = [
       },
     },
   },
-  {
-    accessorKey: 'external_id',
-    header: ({ column }) => {
-      return renderComponent(DataTableColumnHeader<DeliverySlip, unknown>, {
-        label: 'Slip No.',
-        column,
-        icon: {
-          component: Hash as any,
-          props: {
-            class:
-              'text-neutral-700/80 dark:text-neutral-300/80 !size-3.5 mr-0.5',
-          },
-        },
-      });
-    },
-    meta: {
-      header: {
-        class: 'p-0',
-        style: {
-          'min-width': '12.5rem',
-        },
-      },
-      sort: { field: 'external_id' },
-    },
-  },
+  // {
+  //   accessorKey: 'external_id',
+  //   header: ({ column }) => {
+  //     return renderComponent(DataTableColumnHeader<DeliverySlip, unknown>, {
+  //       label: 'Slip No.',
+  //       column,
+  //       icon: {
+  //         component: Hash as any,
+  //         props: {
+  //           class:
+  //             'text-neutral-700/80 dark:text-neutral-300/80 !size-3.5 mr-0.5',
+  //         },
+  //       },
+  //     });
+  //   },
+  //   meta: {
+  //     header: {
+  //       class: 'p-0',
+  //       style: {
+  //         'min-width': '12.5rem',
+  //       },
+  //     },
+  //     sort: { field: 'external_id' },
+  //   },
+  // },
   {
     accessorKey: 'date',
     header: ({ column }) => {
       return renderComponent(DataTableColumnHeader<DeliverySlip, unknown>, {
-        label: 'Date',
         column,
-        icon: {
-          component: Calendar as any,
-          props: {
-            class:
-              'text-neutral-700/80 dark:text-neutral-300/80 !size-3.5 mr-0.5',
-          },
-        },
+        ...columnMap.get('date'),
       });
     },
     cell: ({ row }) => {
@@ -143,15 +242,8 @@ export const columns: ColumnDef<DeliverySlip>[] = [
     accessorKey: 'party',
     header: ({ column }) =>
       renderComponent(DataTableColumnHeader<DeliverySlip, unknown>, {
-        label: 'Party',
         column,
-        icon: {
-          component: Handshake as any,
-          props: {
-            class:
-              'text-neutral-700/80 dark:text-neutral-300/80 !size-3.5 mr-0.5',
-          },
-        },
+        ...columnMap.get('party'),
       }),
     cell: ({ row }) => {
       const party = row.getValue('party') as DeliverySlip['party'];
@@ -173,15 +265,8 @@ export const columns: ColumnDef<DeliverySlip>[] = [
     accessorKey: 'vehicle',
     header: ({ column }) => {
       return renderComponent(DataTableColumnHeader<DeliverySlip, unknown>, {
-        label: 'Vehicle',
         column,
-        icon: {
-          component: Truck as any,
-          props: {
-            class:
-              'text-neutral-700/80 dark:text-neutral-300/80 !size-3.5 mr-0.5',
-          },
-        },
+        ...columnMap.get('vehicle'),
       });
     },
     cell: ({ row }) => {
@@ -190,103 +275,24 @@ export const columns: ColumnDef<DeliverySlip>[] = [
         value: vehicle || undefined,
       });
     },
+    size: 160,
+    minSize: 100,
     meta: {
       header: {
         class: 'p-0',
         style: {
-          'min-width': '12.5rem',
+          'min-width': '10rem',
         },
       },
       sort: { field: 'vehicle.number_plate' },
     },
   },
   {
-    accessorKey: 'royalty_number',
-    header: ({ column }) => {
-      return renderComponent(DataTableColumnHeader<DeliverySlip, unknown>, {
-        label: 'Pitpass',
-        column,
-        icon: {
-          component: Stamp as any,
-          props: {
-            class:
-              'text-neutral-700/80 dark:text-neutral-300/80 !size-3.5 mr-0.5',
-          },
-        },
-      });
-    },
-    size: 115,
-    meta: {
-      header: {
-        class: 'p-0',
-        style: {
-          'min-width': '12.5rem',
-        },
-      },
-      sort: { field: 'royalty_number' },
-    },
-  },
-  {
-    id: 'royalty_quantity',
-    accessorFn: (row) => ({
-      quantity: row.royalty_quantity,
-      unit: row.royalty_quantity_unit,
-    }),
-    header: ({ column }) => {
-      return renderComponent(DataTableColumnHeader<DeliverySlip, unknown>, {
-        label: 'Ton',
-        column,
-        icon: {
-          component: Weight as any,
-          props: {
-            class:
-              'text-neutral-700/80 dark:text-neutral-300/80 !size-3.5 mr-0.5',
-          },
-        },
-      });
-    },
-    cell: ({ row }) => {
-      const { quantity, unit } = row.getValue('royalty_quantity') as {
-        quantity: string;
-        unit: string;
-      };
-      return `${quantity}`;
-    },
-    sortingFn: (a, b) => {
-      const { quantity: aQuantity } = a.getValue('royalty_quantity') as {
-        quantity: string;
-        unit: string;
-      };
-      const { quantity: bQuantity } = b.getValue('royalty_quantity') as {
-        quantity: string;
-        unit: string;
-      };
-      return parseFloat(aQuantity) - parseFloat(bQuantity);
-    },
-    size: 100,
-    meta: {
-      header: {
-        class: 'p-0',
-        style: {
-          'min-width': '15rem',
-        },
-      },
-      sort: { field: 'royalty_quantity' },
-    },
-  },
-  {
     accessorKey: 'product',
     header: ({ column }) => {
       return renderComponent(DataTableColumnHeader<DeliverySlip, unknown>, {
-        label: 'Product',
         column,
-        icon: {
-          component: Package as any,
-          props: {
-            class:
-              'text-neutral-700/80 dark:text-neutral-300/80 !size-3.5 mr-0.5',
-          },
-        },
+        ...columnMap.get('product'),
       });
     },
     cell: ({ row }) => {
@@ -307,33 +313,30 @@ export const columns: ColumnDef<DeliverySlip>[] = [
   },
   {
     id: 'product_quantity',
+    accessorFn: (row) => ({
+      value: row.product_quantity,
+      unit: row.product_quantity_unit,
+    }),
     header: ({ column }) => {
       return renderComponent(DataTableColumnHeader<DeliverySlip, unknown>, {
-        label: 'Quantity',
         column,
-        icon: {
-          component: BrickWall as any,
-          props: {
-            class:
-              'text-neutral-700/80 dark:text-neutral-300/80 !size-3.5 mr-0.5',
-          },
-        },
+        ...columnMap.get('product_quantity'),
       });
     },
     cell: ({ row }) => {
-      const { quantity, unit } = row.getValue('product') as {
-        quantity?: string;
+      const product_quantity = row.getValue('product_quantity') as {
+        value: string;
         unit: string;
       };
-      return quantity ? `${quantity} ${unit}` : '—';
+      return renderSnippet(deliveryQuantity, product_quantity);
     },
     sortingFn: (a, b) => {
       const { quantity: aQuantity } = a.getValue('product_quantity') as {
-        quantity?: string;
+        quantity: string;
         unit: string;
       };
       const { quantity: bQuantity } = b.getValue('product_quantity') as {
-        quantity?: string;
+        quantity: string;
         unit: string;
       };
       return parseFloat(aQuantity ?? '0') - parseFloat(bQuantity ?? '0');
@@ -349,23 +352,140 @@ export const columns: ColumnDef<DeliverySlip>[] = [
       sort: { field: 'product_quantity' },
     },
   },
+  {
+    accessorKey: 'royalty_number',
+    header: ({ column }) => {
+      return renderComponent(DataTableColumnHeader<DeliverySlip, unknown>, {
+        column,
+        ...columnMap.get('royalty_number'),
+      });
+    },
+    cell: ({ row }) => {
+      const royalty_number = row.getValue(
+        'royalty_number'
+      ) as DeliverySlip['royalty_number'];
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      return renderSnippet(deliveryRoyaltyNumber, { number: royalty_number });
+    },
+    size: 115,
+    meta: {
+      header: {
+        class: 'p-0',
+        style: {
+          'min-width': '12.5rem',
+        },
+      },
+      sort: { field: 'royalty_number' },
+    },
+  },
+  {
+    id: 'royalty_quantity',
+    accessorFn: (row) => ({
+      value: row.royalty_quantity,
+      unit: row.royalty_quantity_unit,
+    }),
+    header: ({ column }) => {
+      return renderComponent(DataTableColumnHeader<DeliverySlip, unknown>, {
+        column,
+        ...columnMap.get('royalty_quantity'),
+      });
+    },
+    cell: ({ row }) => {
+      const royalty_quantity = row.getValue('royalty_quantity') as {
+        value: string;
+        unit: string;
+      };
+      return renderSnippet(deliveryQuantity, royalty_quantity);
+    },
+    sortingFn: (a, b) => {
+      const { quantity: aQuantity } = a.getValue('royalty_quantity') as {
+        quantity: string;
+        unit: string;
+      };
+      const { quantity: bQuantity } = b.getValue('royalty_quantity') as {
+        quantity: string;
+        unit: string;
+      };
+      return parseFloat(aQuantity) - parseFloat(bQuantity);
+    },
+    size: 120,
+    meta: {
+      header: {
+        class: 'p-0',
+        style: {
+          'min-width': '15rem',
+        },
+      },
+      sort: { field: 'royalty_quantity' },
+    },
+  },
+  {
+    id: 'state',
+    accessorKey: 'state',
+    header: ({ column }) =>
+      renderComponent(DataTableColumnHeader<DeliverySlip, unknown>, {
+        column,
+        ...columnMap.get('state'),
+      }),
+    cell: ({ row }) => {
+      const state: DeliverySlip['state'] = row.getValue('state');
+      return renderSnippet(deliveryState, { state });
+    },
+    enableSorting: false,
+    size: 120,
+    minSize: 70,
+    meta: {
+      header: {
+        class: 'p-0',
+        style: {
+          width: '5rem',
+        },
+      },
+    },
+  },
+  {
+    id: 'remarks',
+    accessorFn: (row) => row.metadata?.remarks,
+    header: ({ column }) =>
+      renderComponent(DataTableColumnHeader<DeliverySlip, unknown>, {
+        column,
+        ...columnMap.get('remarks'),
+      }),
+    cell: ({ row, cell, table }) => {
+      const remarks = cell.getValue() as DeliverySlip['metadata']['remarks'];
+      const delivery_id = row.original.id;
+      return renderSnippet(deliveryRemarks, { remarks, delivery_id });
+    },
+    enableSorting: false,
+    size: 250,
+    minSize: 100,
+    meta: {
+      header: {
+        class: 'p-0',
+        style: {
+          'min-width': '12.5rem',
+        },
+      },
+    },
+  },
   // {
-  //   accessorKey: 'state',
+  //   id: 'billed',
+  //   accessorFn: (row) => row.state,
   //   header: ({ column }) =>
   //     renderComponent(DataTableColumnHeader<DeliverySlip, unknown>, {
-  //       label: 'State',
+  //       label: 'Billed',
   //       column,
   //       icon: {
-  //         component: CircleDot as any,
+  //         component: ReceiptText as any,
   //         props: {
   //           class:
   //             'text-neutral-700/80 dark:text-neutral-300/80 !size-3.5 mr-0.5',
   //         },
   //       },
   //     }),
-  //   cell: ({ row }) => {
-  //     const state = row.getValue('state') as string;
-  //     return state.charAt(0).toUpperCase() + state.slice(1);
+  //   cell: ({ cell }) => {
+  //     const slip_state = cell.getValue() as DeliverySlip['state'];
+  //     return renderSnippet(deliveryBilled, { state: slip_state });
   //   },
   //   enableSorting: false,
   //   size: 100,
@@ -380,68 +500,14 @@ export const columns: ColumnDef<DeliverySlip>[] = [
   //   },
   // },
   {
-    id: 'remarks',
-    accessorFn: (row) => row.metadata?.remarks,
-    header: ({ column }) =>
-      renderComponent(DataTableColumnHeader<DeliverySlip, unknown>, {
-        label: 'Remarks',
-        column,
-        icon: {
-          component: MessageSquareQuote as any,
-          props: {
-            class:
-              'text-neutral-700/80 dark:text-neutral-300/80 !size-3.5 mr-0.5',
-          },
-        },
-      }),
-    enableSorting: false,
-    size: 250,
-    minSize: 100,
-    meta: {
-      header: {
-        class: 'p-0',
-        style: {
-          'min-width': '12.5rem',
-        },
-      },
-    },
-  },
-  {
-    id: 'billed',
-    accessorFn: (row) => row.state,
-    header: ({ column }) =>
-      renderComponent(DataTableColumnHeader<DeliverySlip, unknown>, {
-        label: 'Billed',
-        column,
-        icon: {
-          component: ReceiptText as any,
-          props: {
-            class:
-              'text-neutral-700/80 dark:text-neutral-300/80 !size-3.5 mr-0.5',
-          },
-        },
-      }),
-    cell: ({ cell }) => {
-      const slip_state = cell.getValue() as DeliverySlip['state'];
-      return renderSnippet(billedCellSnippet, { state: slip_state });
-    },
-    enableSorting: false,
-    size: 100,
-    minSize: 70,
-    meta: {
-      header: {
-        class: 'p-0',
-        style: {
-          width: '5rem',
-        },
-      },
-    },
-  },
-  {
     id: 'table-row-actions',
     cell: ({ row }) => {
       // You can pass whatever you need from `row.original` to the component
-      return renderComponent(DataTableActions, { id: row.original.id });
+      return renderComponent(DataTableActions, {
+        id: row.original.id,
+        party_id: row.original.party_id,
+        royalty_number: row.original.royalty_number,
+      });
     },
     enableHiding: false,
     enableSorting: false,
@@ -465,115 +531,3 @@ export const columns: ColumnDef<DeliverySlip>[] = [
     },
   },
 ];
-
-export const columnMap = new Map();
-
-columnMap.set('external_id', {
-  label: 'Slip No.',
-  icon: {
-    component: Hash as any,
-    props: {
-      class: 'text-neutral-700/80 dark:text-neutral-300/80 !size-3.5 mr-0.5',
-    },
-  },
-});
-
-columnMap.set('date', {
-  label: 'Date',
-  icon: {
-    component: Calendar as any,
-    props: {
-      class: 'text-neutral-700/80 dark:text-neutral-300/80 !size-3.5 mr-0.5',
-    },
-  },
-});
-
-columnMap.set('vehicle', {
-  label: 'Vehicle',
-  icon: {
-    component: Truck as any,
-    props: {
-      class: 'text-neutral-700/80 dark:text-neutral-300/80 !size-3.5 mr-0.5',
-    },
-  },
-});
-
-columnMap.set('party', {
-  label: 'Party',
-  icon: {
-    component: Handshake as any,
-    props: {
-      class: 'text-neutral-700/80 dark:text-neutral-300/80 !size-3.5 mr-0.5',
-    },
-  },
-});
-
-columnMap.set('royalty_number', {
-  label: 'Pitpass',
-  icon: {
-    component: Stamp as any,
-    props: {
-      class: 'text-neutral-700/80 dark:text-neutral-300/80 !size-3.5 mr-0.5',
-    },
-  },
-});
-
-columnMap.set('royalty_quantity', {
-  label: 'Ton',
-  icon: {
-    component: Weight as any,
-    props: {
-      class: 'text-neutral-700/80 dark:text-neutral-300/80 !size-3.5 mr-0.5',
-    },
-  },
-});
-
-columnMap.set('product', {
-  label: 'Product',
-  icon: {
-    component: Package as any,
-    props: {
-      class: 'text-neutral-700/80 dark:text-neutral-300/80 !size-3.5 mr-0.5',
-    },
-  },
-});
-
-columnMap.set('product_quantity', {
-  label: 'Quantity',
-  icon: {
-    component: BrickWall as any,
-    props: {
-      class: 'text-neutral-700/80 dark:text-neutral-300/80 !size-3.5 mr-0.5',
-    },
-  },
-});
-
-columnMap.set('state', {
-  label: 'State',
-  icon: {
-    component: CircleDot as any,
-    props: {
-      class: 'text-neutral-700/80 dark:text-neutral-300/80 !size-3.5 mr-0.5',
-    },
-  },
-});
-
-columnMap.set('remarks', {
-  label: 'Remarks',
-  icon: {
-    component: MessageSquareQuote as any,
-    props: {
-      class: 'text-neutral-700/80 dark:text-neutral-300/80 !size-3.5 mr-0.5',
-    },
-  },
-});
-
-columnMap.set('billed', {
-  label: 'Billed',
-  icon: {
-    component: ReceiptText as any,
-    props: {
-      class: 'text-neutral-700/80 dark:text-neutral-300/80 !size-3.5 mr-0.5',
-    },
-  },
-});

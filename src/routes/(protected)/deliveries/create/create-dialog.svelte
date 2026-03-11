@@ -1,6 +1,7 @@
 <script lang="ts">
   import * as Dialog from '$lib/components/ui/dialog/index.js';
   import CreateForm from './create-form.svelte';
+  import { create_delivery_slip } from '$lib/api/delivery-slips.remote';
 
   let {
     open = $bindable(false),
@@ -14,9 +15,15 @@
     open = false;
     onSuccess?.();
   }
+
+  const handle_open_change = (_open: boolean) => {
+    if (!_open) {
+      // create_delivery_slip.
+    }
+  };
 </script>
 
-<Dialog.Root bind:open>
+<Dialog.Root bind:open onOpenChange={handle_open_change}>
   <Dialog.Content class="gap-0 p-0 sm:max-w-2xl">
     <div class="px-6 pt-6 pb-4">
       <Dialog.Header>

@@ -85,10 +85,10 @@
     {#snippet toolbar({ table })}
       <Input
         placeholder="Filter slip number…"
-        value={(table.getColumn('external_id')?.getFilterValue() as string) ??
+        value={(table.getColumn('party.name')?.getFilterValue() as string) ??
           ''}
         oninput={(e) => {
-          table.getColumn('external_id')?.setFilterValue(e.currentTarget.value);
+          table.getColumn('party.name')?.setFilterValue(e.currentTarget.value);
         }}
         class="max-w-sm"
       />
@@ -129,11 +129,11 @@
       {#snippet toolbar({ table })}
         <Input
           placeholder="Filter slip number…"
-          value={(table.getColumn('external_id')?.getFilterValue() as string) ??
+          value={(table.getColumn('party.name')?.getFilterValue() as string) ??
             ''}
           oninput={(e) => {
             table
-              .getColumn('external_id')
+              .getColumn('party.name')
               ?.setFilterValue(e.currentTarget.value);
           }}
           class="max-w-sm"

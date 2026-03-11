@@ -37,18 +37,18 @@
       Recent
     </p>
     {#if slips.length > 0}
-      {#each slips as slip (slip.external_id)}
+      {#each slips as slip (slip.id)}
         <div class="flex items-center py-[5px] text-[11px]">
-          <span class="shrink-0 font-mono text-foreground/60">
-            #{slip.external_id}
-          </span>
           <span class="mx-1.5 text-muted-foreground/20">·</span>
           <span class="shrink-0 text-muted-foreground/45">
             {fmtDate(slip.date)}
           </span>
+          <span class="shrink-0 font-mono text-foreground/60">
+            {slip.party_name ?? '—'}
+          </span>
           <span class="mx-1.5 text-muted-foreground/20">·</span>
           <span class="min-w-0 truncate text-muted-foreground/45">
-            {slip.party_name ?? '—'}
+            {slip.product_name}
           </span>
         </div>
       {/each}

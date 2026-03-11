@@ -31,26 +31,25 @@
   } = $props();
 
   const grid = useDataGrid();
-  const columnState = grid.layout;
 
   const moveLeft = () => {
-    columnState.moveColumnLeft(column.id);
+    grid.layout.moveColumnLeft(column.id);
   };
 
   const moveRight = () => {
-    columnState.moveColumnRight(column.id);
+    grid.layout.moveColumnRight(column.id);
   };
 
   const pinLeft = () => {
-    columnState.pinColumn(column.id, 'left');
+    grid.layout.pinColumn(column.id, 'left');
   };
 
   const pinRight = () => {
-    columnState.pinColumn(column.id, 'right');
+    grid.layout.pinColumn(column.id, 'right');
   };
 
   const unpin = () => {
-    columnState.pinColumn(column.id, false);
+    grid.layout.pinColumn(column.id, false);
   };
 </script>
 
@@ -164,7 +163,7 @@
       <DropdownMenu.Item
         class="gap-1.5 text-[0.825rem] font-medium"
         onclick={moveLeft}
-        disabled={!columnState.canMoveColumnLeft(column.id)}
+        disabled={!grid.layout.canMoveColumnLeft(column.id)}
       >
         <ArrowLeft class="size-3.5! stroke-[1.5]" />
         Move left
@@ -172,7 +171,7 @@
       <DropdownMenu.Item
         class="gap-1.5 text-[0.825rem] font-medium"
         onclick={moveRight}
-        disabled={!columnState.canMoveColumnRight(column.id)}
+        disabled={!grid.layout.canMoveColumnRight(column.id)}
       >
         <ArrowRight class="size-3.5! stroke-[1.5]" />
         Move right
