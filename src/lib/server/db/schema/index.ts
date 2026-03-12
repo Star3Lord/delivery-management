@@ -8,6 +8,12 @@ import {
   product,
   vehicle,
 } from './logistics';
+import {
+  import_session,
+  import_session_status,
+  import_row,
+  import_row_status,
+} from './import';
 import { timestamps, metadata } from './shared';
 
 export {
@@ -20,6 +26,10 @@ export {
   bill_item,
   bill_item_type,
   receipt,
+  import_session,
+  import_session_status,
+  import_row,
+  import_row_status,
   timestamps,
   metadata,
 };
@@ -85,5 +95,19 @@ export const receipt_relations = relations(receipt, ({ one }) => ({
   party: one(customer, {
     fields: [receipt.party_id],
     references: [customer.id],
+  }),
+}));
+
+export const import_session_relations = relations(
+  import_session,
+  ({ many }) => ({
+    rows: many(import_row),
+  })
+);
+
+export const import_row_relations = relations(import_row, ({ one }) => ({
+  session: one(import_session, {
+    fields: [import_row.session_id],
+    references: [import_session.id],
   }),
 }));

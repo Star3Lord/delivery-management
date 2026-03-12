@@ -4,14 +4,16 @@
   import { useSidebar } from '$lib/components/ui/sidebar/index.js';
   import ChevronsUpDownIcon from '@lucide/svelte/icons/chevrons-up-down';
   import PlusIcon from '@lucide/svelte/icons/plus';
+  import type { IconProps } from '@lucide/svelte';
+  import type { Component, ComponentProps } from 'svelte';
 
-  // This should be `Component` after @lucide/svelte updates types
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let { teams }: { teams: { name: string; logo: any; plan: string }[] } =
-    $props();
+  type Props = {
+    teams: { name: string; logo: Component<IconProps>; plan: string }[];
+    active: { name: string; logo: Component<IconProps>; plan: string };
+  };
+
+  let { teams, active = $bindable(teams[0]) }: Props = $props();
   const sidebar = useSidebar();
-
-  let activeTeam = $state(teams[0]);
 </script>
 
 <Sidebar.Menu>
@@ -27,13 +29,13 @@
             <div
               class="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground"
             >
-              <activeTeam.logo class="size-4" />
+              <active.logo class="size-4" />
             </div>
             <div class="grid flex-1 text-start text-sm leading-tight">
               <span class="truncate font-medium">
-                {activeTeam.name}
+                {active.name}
               </span>
-              <span class="truncate text-xs">{activeTeam.plan}</span>
+              <span class="truncate text-xs">{active.plan}</span>
             </div>
             <ChevronsUpDownIcon class="ms-auto" />
           </Sidebar.MenuButton>
@@ -49,10 +51,7 @@
           Teams
         </DropdownMenu.Label>
         {#each teams as team, index (team.name)}
-          <DropdownMenu.Item
-            onSelect={() => (activeTeam = team)}
-            class="gap-2 p-2"
-          >
+          <DropdownMenu.Item onSelect={() => (active = team)} class="gap-2 p-2">
             <div
               class="flex size-6 items-center justify-center rounded-md border"
             >
