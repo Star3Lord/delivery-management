@@ -2,6 +2,7 @@
   import { page } from '$app/state';
   import PageHeader from '$lib/components/page-header.svelte';
   import * as Breadcrumb from '$lib/components/ui/breadcrumb/index.js';
+  import { Spinner } from '$lib/components/ui/spinner/index.js';
   import type { ColumnMapping } from '$lib/utils/import/types';
   import Stepper from './stepper.svelte';
   import Stage1 from './stage-1/stage-1.svelte';
@@ -12,7 +13,7 @@
 
   let mapping = $state<ColumnMapping>({});
 
-  $effect(() => {
+  $effect.pre(() => {
     const url_session = page.url?.searchParams.get('session');
     ctx.init(url_session);
   });
@@ -36,8 +37,6 @@
   </PageHeader>
 
   <div class="flex flex-1 flex-col gap-6 overflow-y-auto p-6">
-    <Stepper {ctx} {mapping} />
-
     {#if ctx.error}
       <div
         class="rounded-lg border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive"
@@ -46,10 +45,27 @@
       </div>
     {/if}
 
-    {#if ctx.step === 1}
-      <Stage1 {ctx} bind:mapping />
-    {:else}
-      <Stage2 {ctx} />
+    {#if ctx.initialized}
+      <Stepper {ctx} {mapping} />
+      {#if ctx.step === 1}
+        <Stage1 {ctx} bind:mapping />
+      {:else}
+        <Stage2 {ctx} />
+      {/if}
+    {:else if ctx.loading}
+      <div
+        class="flex h-full items-center justify-center gap-2 text-sm text-muted-foreground"
+      >
+        <Spinner class="size-4 animate-spin" />
+        Loading session…
+      </div>
+    {:else if !ctx.error}
+      <div
+        class="flex h-full items-center justify-center gap-2 text-sm text-muted-foreground"
+      >
+        <Spinner class="size-4 animate-spin" />
+        Initializing…
+      </div>
     {/if}
   </div>
 </div>

@@ -1,8 +1,10 @@
 <script lang="ts" module>
-  import Banknote from '@lucide/svelte/icons/banknote';
-  import ChartPie from '@lucide/svelte/icons/chart-pie';
-  import Home from '@lucide/svelte/icons/home';
-  import Truck from '@lucide/svelte/icons/truck';
+  import BanknoteIcon from '@lucide/svelte/icons/banknote';
+  import ChartPieIcon from '@lucide/svelte/icons/chart-pie';
+  import HandshakeIcon from '@lucide/svelte/icons/handshake';
+  import HomeIcon from '@lucide/svelte/icons/home';
+  import PackageIcon from '@lucide/svelte/icons/package';
+  import TruckIcon from '@lucide/svelte/icons/truck';
   import { page } from '$app/state';
   import { resolve } from '$app/paths';
 
@@ -16,22 +18,37 @@
     nav: [
       {
         title: 'Dashboard',
-        icon: Home,
+        icon: HomeIcon,
         url: resolve('/dashboard'),
       },
       {
         title: 'Deliveries',
-        icon: Truck,
+        icon: TruckIcon,
         url: resolve('/deliveries'),
       },
       {
+        title: 'Products',
+        icon: PackageIcon,
+        url: resolve('/products'),
+      },
+      {
+        title: 'Vehicles',
+        icon: TruckIcon,
+        url: resolve('/vehicles'),
+      },
+      {
+        title: 'Parties',
+        icon: HandshakeIcon,
+        url: resolve('/parties'),
+      },
+      {
         title: 'Ledger',
-        icon: Banknote,
+        icon: BanknoteIcon,
         url: resolve('/ledger'),
       },
       {
         title: 'Reports',
-        icon: ChartPie,
+        icon: ChartPieIcon,
         url: resolve('/reports'),
       },
     ],

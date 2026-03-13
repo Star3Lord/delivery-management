@@ -1,4 +1,14 @@
-import { and, desc, eq, sql, not } from 'drizzle-orm';
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  sql,
+  not,
+  count,
+  countDistinct,
+  between,
+} from 'drizzle-orm';
 import * as v from 'valibot';
 import { query, form, command } from '$app/server';
 import { db } from '$lib/server/db';
@@ -373,7 +383,6 @@ export const discard_delivery_slip_form = form(
       .set({ state: 'discarded' })
       .where(eq(delivery_slip.id, id))
       .returning();
-    await new Promise((resolve) => setTimeout(resolve, 3000));
     if (updated.length === 0) {
       throw new Error('Delivery record not found');
     }
@@ -471,5 +480,35 @@ export const get_recent_slips_by_product = query(
           product: row.product,
         }))
       );
+  }
+);
+
+export const get_delivery_count_by_products = query(
+  v.object({
+    start_date: v.string(),
+    end_date: v.string(),
+  }),
+  async (args) => {
+    const stats_query = db
+      .select({
+        date: delivery_slip.date,
+        product: {
+          id: product.id,
+          name: product.name,
+        },
+        count: count(delivery_slip.id),
+      })
+      .from(delivery_slip)
+      .innerJoin(product, eq(delivery_slip.product_id, product.id))
+      .where(
+        and(
+          between(delivery_slip.date, args.start_date, args.end_date),
+          not(eq(delivery_slip.state, 'discarded'))
+        )
+      )
+      .groupBy(delivery_slip.date, product.id, product.name)
+      .orderBy(asc(delivery_slip.date), asc(product.name));
+
+    return stats_query;
   }
 );

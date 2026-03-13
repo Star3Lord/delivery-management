@@ -32,10 +32,6 @@
     {/snippet}
   </PageHeader>
 
-  <div class="w-full p-6">
-    <!-- <Chart /> -->
-  </div>
-
   <div class="flex min-h-[calc(100%-var(--header-height))] flex-col">
     <Container />
   </div>

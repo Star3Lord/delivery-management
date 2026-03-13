@@ -1,2 +1,0 @@
-DROP INDEX "CRUSHER"."delivery_slip_created_at_desc_id_desc_idx";--> statement-breakpoint
-CREATE INDEX "delivery_slip_date_desc_created_at_desc_id_desc_idx" ON "CRUSHER"."delivery_slip" USING btree ("date" DESC NULLS LAST,"created_at" DESC NULLS LAST,"id" DESC NULLS LAST);

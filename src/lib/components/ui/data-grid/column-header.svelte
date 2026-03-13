@@ -60,7 +60,7 @@
         {...props}
         {variant}
         class={cn(
-          'w-full justify-start gap-1 rounded-none px-3 text-[0.825rem] text-primary',
+          'w-full justify-start gap-1 rounded-none px-3 text-[0.825rem] text-foreground',
           className
         )}
         {...restProps}

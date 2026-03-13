@@ -28,7 +28,7 @@
 
 <div
   class="flex w-fit justify-start rounded-lg border border-border bg-accent
-  px-1.5 py-0.5 text-sm font-medium text-primary/80 transition-colors
+  px-1.5 py-0.5 text-sm font-medium text-foreground/60 transition-colors
   duration-200 ease-in-out hover:bg-background/70"
 >
   <span title={formattedDate}>

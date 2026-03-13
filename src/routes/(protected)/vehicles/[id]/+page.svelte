@@ -3,10 +3,10 @@
   import * as Breadcrumb from '$lib/components/ui/breadcrumb/index.js';
   import { Badge } from '$lib/components/ui/badge/index.js';
   import { Separator } from '$lib/components/ui/separator/index.js';
-  import Truck from '@lucide/svelte/icons/truck';
   import Calendar from '@lucide/svelte/icons/calendar';
   import Clock from '@lucide/svelte/icons/clock';
   import RecentDeliveriesPlaceholder from './recent-deliveries-placeholder.svelte';
+  import { vehicleIcon } from '../snippets.svelte';
 
   let { data } = $props();
 
@@ -51,7 +51,7 @@
       <div
         class="flex size-11 shrink-0 items-center justify-center rounded-lg bg-primary/8 text-primary/70"
       >
-        <Truck class="size-5" />
+        {@render vehicleIcon({ vehicle: data, props: { class: 'size-6' } })}
       </div>
       <div class="min-w-0 flex-1">
         <h1
@@ -63,12 +63,12 @@
           class="mt-1.5 flex items-center gap-3 text-xs text-muted-foreground/50"
         >
           <Badge variant="secondary" class="text-[11px] font-normal">
-            {data.vehicle_type ?? 'Vehicle'}
+            {data.vehicle_type ?? 'Unknown Vehicle Type'}
           </Badge>
-          <span class="flex items-center gap-1">
+          <!-- <span class="flex items-center gap-1">
             <Calendar class="size-3" />
             {created}
-          </span>
+          </span> -->
           <span class="flex items-center gap-1">
             <Clock class="size-3" />
             {updated}

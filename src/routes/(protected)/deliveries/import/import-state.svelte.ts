@@ -14,6 +14,7 @@ import type {
   ImportStats,
   RowDecision,
 } from '$lib/utils/import/types';
+import { tick } from 'svelte';
 
 const STORAGE_KEY = 'import_session_id';
 
@@ -44,7 +45,7 @@ function store_session_id(id: string | null) {
 
 export class ImportState {
   session_id = $state<string | null>(null);
-  session = $state<Session>(null);
+  session = $state<Session | undefined>(undefined);
   current_batch = $state.raw<ImportRow[]>([]);
   batch_total = $state(0);
   batch_page = $state(0);
@@ -109,12 +110,13 @@ export class ImportState {
    */
   async init(url_session_id?: string | null) {
     if (this.initialized) return;
-    this.initialized = true;
 
     const id = url_session_id || read_stored_session_id();
     if (id) {
       await this.load_session(id);
     }
+
+    this.initialized = true;
   }
 
   async load_session(id: string) {
@@ -286,7 +288,7 @@ export class ImportState {
       }
     }
     store_session_id(null);
-    this.session = null;
+    this.session = undefined;
     this.session_id = null;
     this.current_batch = [];
     this.batch_total = 0;

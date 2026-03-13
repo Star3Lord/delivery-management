@@ -10,6 +10,7 @@ export const list_products = query(
   create_list_query_validator(product),
   async (args) => {
     const products = list_paginated(product, args);
+    // await new Promise((resolve) => setTimeout(resolve, 2000));
     return products;
   }
 );

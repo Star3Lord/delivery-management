@@ -63,10 +63,10 @@
           <Badge variant="secondary" class="text-[11px] font-normal">
             Product
           </Badge>
-          <span class="flex items-center gap-1">
+          <!-- <span class="flex items-center gap-1">
             <Calendar class="size-3" />
             {created}
-          </span>
+          </span> -->
           <span class="flex items-center gap-1">
             <Clock class="size-3" />
             {updated}
