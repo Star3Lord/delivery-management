@@ -13,7 +13,7 @@ import { delivery_slip, product } from './logistics';
 
 export const bill = crusher_schema.table('bill', {
   id: uuid('id')
-    .default(sql`uuidv7()`)
+    .default(sql`gen_random_uuid()`)
     .primaryKey(),
   party_id: uuid('party_id')
     .notNull()
@@ -31,7 +31,7 @@ export const bill_item_type = crusher_schema.enum('bill_item_type', [
 
 export const bill_item = crusher_schema.table('bill_item', {
   id: uuid('id')
-    .default(sql`uuidv7()`)
+    .default(sql`gen_random_uuid()`)
     .primaryKey(),
   bill_id: uuid('bill_id')
     .notNull()
@@ -51,7 +51,7 @@ export const bill_item = crusher_schema.table('bill_item', {
 
 export const receipt = crusher_schema.table('receipt', {
   id: uuid('id')
-    .default(sql`uuidv7()`)
+    .default(sql`gen_random_uuid()`)
     .primaryKey(),
   party_id: uuid('party_id')
     .notNull()

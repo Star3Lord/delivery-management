@@ -13,9 +13,9 @@ import {
 } from './src/lib/server/db/schema/index';
 
 async function main() {
-  if (!process.env.DATABASE_URL) throw new Error('DATABASE_URL is not set');
+  if (!process.env.DATABASE_URL_DIRECT) throw new Error('DATABASE_URL_DIRECT is not set');
 
-  const client = postgres(process.env.DATABASE_URL);
+  const client = postgres(process.env.DATABASE_URL_DIRECT);
   const db = drizzle(client);
 
   const tables = {

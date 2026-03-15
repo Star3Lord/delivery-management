@@ -25,7 +25,7 @@ export const import_row_status = crusher_schema.enum('import_row_status', [
 
 export const import_session = crusher_schema.table('import_session', {
   id: uuid('id')
-    .default(sql`uuidv7()`)
+    .default(sql`gen_random_uuid()`)
     .primaryKey(),
   file_name: text('file_name').notNull(),
   status: import_session_status('status').notNull().default('mapping'),
@@ -51,7 +51,7 @@ export const import_row = crusher_schema.table(
   'import_row',
   {
     id: uuid('id')
-      .default(sql`uuidv7()`)
+      .default(sql`gen_random_uuid()`)
       .primaryKey(),
     session_id: uuid('session_id')
       .references(() => import_session.id, { onDelete: 'cascade' })

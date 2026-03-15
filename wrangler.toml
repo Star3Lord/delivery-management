@@ -1,0 +1,26 @@
+name = "delivery-manager"
+main = ".svelte-kit/cloudflare/_worker.js"
+
+compatibility_date = "2026-03-14"
+compatibility_flags = [ "nodejs_compat", "nodejs_als" ]
+
+[observability]
+    [observability.logs]
+    enabled = true
+    invocation_logs = true
+
+    [observability.traces]
+    enabled = true
+
+[assets]
+directory = ".cloudflare/public"
+# directory = ".svelte-kit/cloudflare"
+binding = "ASSETS" # Exclude this if you don't have a `main` key configured.
+
+[[hyperdrive]]
+binding = "HYPERDRIVE"
+id = "776cb3ee5a284922a556c144df8d8ae0"
+localConnectionString = "postgres://batman:robin@localhost:5432/crusher"
+
+[placement]
+region = "aws:ap-south-1"

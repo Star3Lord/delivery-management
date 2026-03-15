@@ -11,7 +11,7 @@ import {
 } from 'drizzle-orm';
 import * as v from 'valibot';
 import { query, form, command } from '$app/server';
-import { db } from '$lib/server/db';
+import { get_db } from '$lib/server/db';
 import {
   delivery_slip,
   customer,
@@ -79,6 +79,8 @@ export const list_delivery_slips = query(
       )`
       );
     }
+
+    const db = get_db();
 
     const qb = db
       .select()
@@ -159,6 +161,8 @@ export const list_delivery_slips_v2 = query(
       params: args,
     });
 
+    const db = get_db();
+
     if (q.select) {
       const query = db
         .select(q.select)
@@ -213,6 +217,7 @@ export const get_delivery_slip = query(
     id: v.string(),
   }),
   async ({ id }) => {
+    const db = get_db();
     const slip_obj = await db
       .select()
       .from(delivery_slip)
@@ -294,6 +299,7 @@ export const create_delivery_slip = form(
   }),
   async (args) => {
     const { royalty, state, ...rest } = args;
+    const db = get_db();
     const slip_obj = await db.insert(delivery_slip).values({
       ...rest,
       royalty_number: royalty?.number,
@@ -347,6 +353,7 @@ export const update_delivery_slip = form(
     metadata: v.optional(v.record(v.string(), v.any())),
   }),
   async (args) => {
+    const db = get_db();
     const slip_obj = await db
       .update(delivery_slip)
       .set(args satisfies Partial<typeof delivery_slip.$inferInsert>)
@@ -362,6 +369,7 @@ export const update_delivery_slip_metadata = form(
     metadata: v.record(v.string(), v.any()),
   }),
   async (args) => {
+    const db = get_db();
     const [updated] = await db
       .update(delivery_slip)
       .set({
@@ -378,6 +386,7 @@ export const discard_delivery_slip_form = form(
     id: v.string(),
   }),
   async ({ id }) => {
+    const db = get_db();
     const updated = await db
       .update(delivery_slip)
       .set({ state: 'discarded' })
@@ -395,6 +404,7 @@ export const delete_delivery_slip = command(
     id: v.string(),
   }),
   async ({ id }) => {
+    const db = get_db();
     await db.delete(delivery_slip).where(eq(delivery_slip.id, id));
   }
 );
@@ -402,6 +412,7 @@ export const delete_delivery_slip = command(
 export const get_recent_slips_by_vehicle_for_preview = query(
   v.object({ vehicle_id: v.string(), limit: v.optional(v.number()) }),
   async (args) => {
+    const db = get_db();
     return db
       .select({
         id: delivery_slip.id,
@@ -421,6 +432,7 @@ export const get_recent_slips_by_vehicle_for_preview = query(
 export const get_recent_slips_by_vehicle = query(
   v.object({ vehicle_id: v.string(), limit: v.optional(v.number()) }),
   async (args) => {
+    const db = get_db();
     return db
       .select()
       .from(delivery_slip)
@@ -444,6 +456,7 @@ export const get_recent_slips_by_vehicle = query(
 export const get_recent_slips_by_product_for_preview = query(
   v.object({ product_id: v.string(), limit: v.optional(v.number()) }),
   async (args) => {
+    const db = get_db();
     return db
       .select({
         id: delivery_slip.id,
@@ -463,6 +476,7 @@ export const get_recent_slips_by_product_for_preview = query(
 export const get_recent_slips_by_product = query(
   v.object({ product_id: v.string(), limit: v.optional(v.number()) }),
   async (args) => {
+    const db = get_db();
     return db
       .select()
       .from(delivery_slip)
@@ -489,6 +503,7 @@ export const get_delivery_count_by_products = query(
     end_date: v.string(),
   }),
   async (args) => {
+    const db = get_db();
     const stats_query = db
       .select({
         date: delivery_slip.date,

@@ -1,7 +1,7 @@
 import { eq, and, ne, inArray, desc, sql, count } from 'drizzle-orm';
 import * as v from 'valibot';
 import { query, command } from '$app/server';
-import { db } from '$lib/server/db';
+import { get_db } from '$lib/server/db';
 import {
   import_session,
   import_row,
@@ -40,6 +40,7 @@ import type {
 export const get_import_session = query(
   v.object({ id: v.string() }),
   async ({ id }) => {
+    const db = get_db();
     const [session] = await db
       .select()
       .from(import_session)
@@ -50,6 +51,7 @@ export const get_import_session = query(
 );
 
 export const list_import_sessions = query(async () => {
+  const db = get_db();
   return db
     .select({
       id: import_session.id,
@@ -78,6 +80,7 @@ export const create_import_session = command(
       throw new Error('No valid rows found in file');
     }
 
+    const db = get_db();
     const [session] = await db
       .insert(import_session)
       .values({
@@ -119,6 +122,7 @@ export const confirm_column_mapping = command(
     const typed_mapping = mapping as ColumnMapping;
 
     // Update session with confirmed mapping
+    const db = get_db();
     await db
       .update(import_session)
       .set({ column_mapping: typed_mapping, status: 'processing' })
@@ -387,6 +391,7 @@ export const list_import_rows = query(
         )
       );
     }
+    const db = get_db();
 
     const [rows, [total_result]] = await Promise.all([
       db
@@ -419,6 +424,7 @@ export const find_duplicate_matches = query(
     session_id: v.string(),
   }),
   async ({ row_id, session_id }) => {
+    const db = get_db();
     const [target] = await db
       .select()
       .from(import_row)
@@ -615,6 +621,8 @@ export const review_import_rows = command(
         if (d.new_product_name !== undefined)
           set.new_product_name = d.new_product_name;
 
+        const db = get_db();
+
         return db
           .update(import_row)
           .set(set)
@@ -666,6 +674,7 @@ export const bulk_action_all_rows = command(
       conditions.push(eq(import_row.status, 'duplicate'));
     }
 
+    const db = get_db();
     const result = await db
       .update(import_row)
       .set({ status: target_status })
@@ -687,6 +696,7 @@ export const recover_skipped_rows = command(
   async ({ session_id, row_ids }) => {
     if (row_ids.length === 0) return { updated: 0 };
 
+    const db = get_db();
     await db
       .update(import_row)
       .set({ status: 'pending' })
@@ -711,6 +721,7 @@ export const save_approved_rows = command(
     limit: v.optional(v.number()),
   }),
   async ({ session_id, limit = 50 }) => {
+    const db = get_db();
     const rows = await db
       .select()
       .from(import_row)
@@ -810,6 +821,7 @@ export const save_approved_rows = command(
 export const delete_import_session = command(
   v.object({ id: v.string() }),
   async ({ id }) => {
+    const db = get_db();
     await db.delete(import_session).where(eq(import_session.id, id));
   }
 );
@@ -819,6 +831,7 @@ export const delete_import_session = command(
 export const list_new_entities = query(
   v.object({ session_id: v.string() }),
   async ({ session_id }) => {
+    const db = get_db();
     const rows = await db
       .select({
         id: import_row.id,
@@ -929,6 +942,7 @@ export const resolve_new_entity = command(
     existing_id: v.string(),
   }),
   async ({ session_id, entity_type, new_value, existing_id }) => {
+    const db = get_db();
     const pending_rows = await db
       .select({ id: import_row.id })
       .from(import_row)
@@ -1040,6 +1054,7 @@ export const merge_new_entities = command(
           ? import_row.new_vehicle_number
           : import_row.new_product_name;
 
+    const db = get_db();
     const rows_to_update = await db
       .select({ id: import_row.id })
       .from(import_row)
@@ -1229,6 +1244,8 @@ async function find_db_duplicate_scores(
     by_date.set(d, group);
   }
 
+  const db = get_db();
+
   // Query DB slips for each date batch
   for (const [date_val, group] of by_date) {
     const slips = await db
@@ -1340,6 +1357,8 @@ async function create_new_entities(entities: {
     products: new Map<string, string>(),
   };
 
+  const db = get_db();
+
   if (entities.parties.size > 0) {
     const values = [...entities.parties.entries()].map(([_, name]) => ({
       name,
@@ -1388,7 +1407,9 @@ async function create_new_entities(entities: {
   return result;
 }
 
-type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
+type Tx = Parameters<
+  Parameters<ReturnType<typeof get_db>['transaction']>[0]
+>[0];
 
 type NewEntitiesMap = {
   parties: Map<string, string>;
@@ -1550,6 +1571,7 @@ async function create_new_entities_tx(
 }
 
 async function refresh_session_stats(session_id: string): Promise<ImportStats> {
+  const db = get_db();
   const status_counts = await db
     .select({
       status: import_row.status,
@@ -1604,6 +1626,7 @@ async function refresh_session_stats(session_id: string): Promise<ImportStats> {
  * Uses fuzzy matching so typos still resolve correctly.
  */
 async function propagate_entity_ids(session_id: string) {
+  const db = get_db();
   const [all_parties, all_vehicles, all_products] = await Promise.all([
     db.select({ id: customer.id, name: customer.name }).from(customer),
     db

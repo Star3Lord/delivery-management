@@ -1,7 +1,7 @@
 import { eq } from 'drizzle-orm';
 import * as v from 'valibot';
 import { query, form, command } from '$app/server';
-import { db } from '$lib/server/db';
+import { get_db } from '$lib/server/db';
 import { receipt } from '$lib/server/db/schema';
 import { list_paginated } from '$lib/api/shared';
 import { create_list_query_validator } from '$lib/server/validation/query';
@@ -19,7 +19,7 @@ export const get_receipt = query(
     id: v.string(),
   }),
   async ({ id }) => {
-    const receipt_obj = await db
+    const receipt_obj = await get_db()
       .select()
       .from(receipt)
       .where(eq(receipt.id, id));
@@ -36,9 +36,11 @@ export const create_receipt = form(
     metadata: v.optional(v.record(v.string(), v.any())),
   }),
   async (args) => {
-    const receipt_obj = await db.insert(receipt).values({
-      ...args,
-    } satisfies typeof receipt.$inferInsert);
+    const receipt_obj = await get_db()
+      .insert(receipt)
+      .values({
+        ...args,
+      } satisfies typeof receipt.$inferInsert);
     return receipt_obj;
   }
 );
@@ -54,7 +56,7 @@ export const bulk_create_receipts = command(
     })
   ),
   async (args) => {
-    const receipt_objs = await db
+    const receipt_objs = await get_db()
       .insert(receipt)
       .values(args satisfies (typeof receipt.$inferInsert)[]);
     return receipt_objs;
@@ -71,7 +73,7 @@ export const update_receipt = form(
     metadata: v.optional(v.record(v.string(), v.any())),
   }),
   async (args) => {
-    const receipt_obj = await db
+    const receipt_obj = await get_db()
       .update(receipt)
       .set(args satisfies Partial<typeof receipt.$inferInsert>)
       .where(eq(receipt.id, args.id))
@@ -85,6 +87,6 @@ export const delete_receipt = command(
     id: v.string(),
   }),
   async ({ id }) => {
-    await db.delete(receipt).where(eq(receipt.id, id));
+    await get_db().delete(receipt).where(eq(receipt.id, id));
   }
 );

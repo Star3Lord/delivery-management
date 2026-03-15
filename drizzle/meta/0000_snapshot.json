@@ -1,5 +1,5 @@
 {
-  "id": "8a066c7e-b5f4-484c-be3b-c0e4e8d7c255",
+  "id": "551b345e-4c1a-49f7-82fd-aec3431cf74d",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -13,7 +13,7 @@
           "type": "uuid",
           "primaryKey": true,
           "notNull": true,
-          "default": "uuidv7()"
+          "default": "gen_random_uuid()"
         },
         "party_id": {
           "name": "party_id",
@@ -87,7 +87,7 @@
           "type": "uuid",
           "primaryKey": true,
           "notNull": true,
-          "default": "uuidv7()"
+          "default": "gen_random_uuid()"
         },
         "bill_id": {
           "name": "bill_id",
@@ -233,7 +233,7 @@
           "type": "uuid",
           "primaryKey": true,
           "notNull": true,
-          "default": "uuidv7()"
+          "default": "gen_random_uuid()"
         },
         "name": {
           "name": "name",
@@ -298,7 +298,7 @@
           "type": "uuid",
           "primaryKey": true,
           "notNull": true,
-          "default": "uuidv7()"
+          "default": "gen_random_uuid()"
         },
         "date": {
           "name": "date",
@@ -472,7 +472,7 @@
           "type": "uuid",
           "primaryKey": true,
           "notNull": true,
-          "default": "uuidv7()"
+          "default": "gen_random_uuid()"
         },
         "session_id": {
           "name": "session_id",
@@ -629,7 +629,7 @@
           "type": "uuid",
           "primaryKey": true,
           "notNull": true,
-          "default": "uuidv7()"
+          "default": "gen_random_uuid()"
         },
         "file_name": {
           "name": "file_name",
@@ -714,7 +714,7 @@
           "type": "uuid",
           "primaryKey": true,
           "notNull": true,
-          "default": "uuidv7()"
+          "default": "gen_random_uuid()"
         },
         "name": {
           "name": "name",
@@ -761,7 +761,7 @@
           "type": "uuid",
           "primaryKey": true,
           "notNull": true,
-          "default": "uuidv7()"
+          "default": "gen_random_uuid()"
         },
         "party_id": {
           "name": "party_id",
@@ -835,7 +835,7 @@
           "type": "uuid",
           "primaryKey": true,
           "notNull": true,
-          "default": "uuidv7()"
+          "default": "gen_random_uuid()"
         },
         "number_plate": {
           "name": "number_plate",

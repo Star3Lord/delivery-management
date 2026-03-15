@@ -1,7 +1,7 @@
 import { eq } from 'drizzle-orm';
 import * as v from 'valibot';
 import { query, form, command } from '$app/server';
-import { db } from '$lib/server/db';
+import { get_db } from '$lib/server/db';
 import { customer } from '$lib/server/db/schema';
 import { list_paginated } from '$lib/api/shared';
 import { create_list_query_validator } from '$lib/server/validation/query';
@@ -15,7 +15,7 @@ export const list_customers = query(
 );
 
 export const list_all_customers = query(async () => {
-  const customers = await db
+  const customers = await get_db()
     .select({
       id: customer.id,
       name: customer.name,
@@ -34,6 +34,7 @@ export const get_customer = query(
     id: v.string(),
   }),
   async ({ id }) => {
+    const db = get_db();
     const customer_obj = await db
       .select()
       .from(customer)
@@ -52,6 +53,7 @@ export const create_customer = form(
     metadata: v.optional(v.record(v.string(), v.any())),
   }),
   async (args) => {
+    const db = get_db();
     const customer_obj = await db.insert(customer).values({
       ...args,
     } satisfies typeof customer.$inferInsert);
@@ -70,6 +72,7 @@ export const bulk_create_customers = command(
     })
   ),
   async (args) => {
+    const db = get_db();
     const customer_objs = await db
       .insert(customer)
       .values(args satisfies (typeof customer.$inferInsert)[]);
@@ -87,6 +90,7 @@ export const update_customer = form(
     metadata: v.optional(v.record(v.string(), v.any())),
   }),
   async (args) => {
+    const db = get_db();
     const customer_obj = await db
       .update(customer)
       .set(args satisfies Partial<typeof customer.$inferInsert>)
@@ -101,6 +105,6 @@ export const delete_customer = command(
     id: v.string(),
   }),
   async ({ id }) => {
-    await db.delete(customer).where(eq(customer.id, id));
+    await get_db().delete(customer).where(eq(customer.id, id));
   }
 );

@@ -1,7 +1,7 @@
 import { eq } from 'drizzle-orm';
 import * as v from 'valibot';
 import { query, form, command } from '$app/server';
-import { db } from '$lib/server/db';
+import { get_db } from '$lib/server/db';
 import { bill, bill_item } from '$lib/server/db/schema';
 import { list_paginated } from '$lib/api/shared';
 import { create_list_query_validator } from '$lib/server/validation/query';
@@ -19,6 +19,7 @@ export const get_bill = query(
     id: v.string(),
   }),
   async ({ id }) => {
+    const db = get_db();
     const bill_obj = await db.query.bill.findFirst({
       where: eq(bill.id, id),
       with: {
@@ -59,6 +60,7 @@ export const create_bill = form(
     metadata: v.optional(v.record(v.string(), v.any())),
   }),
   async ({ items, ...bill_data }) => {
+    const db = get_db();
     return await db.transaction(async (tx) => {
       const [created_bill] = await tx
         .insert(bill)
@@ -90,6 +92,7 @@ export const update_bill = form(
     metadata: v.optional(v.record(v.string(), v.any())),
   }),
   async (args) => {
+    const db = get_db();
     const bill_obj = await db
       .update(bill)
       .set(args satisfies Partial<typeof bill.$inferInsert>)
@@ -104,7 +107,7 @@ export const delete_bill = command(
     id: v.string(),
   }),
   async ({ id }) => {
-    await db.delete(bill).where(eq(bill.id, id));
+    await get_db().delete(bill).where(eq(bill.id, id));
   }
 );
 
@@ -113,7 +116,7 @@ export const delete_bill = command(
 export const add_bill_item = form(
   v.intersect([v.object({ bill_id: v.string() }), bill_item_validator]),
   async ({ bill_id, ...item }) => {
-    const [created] = await db
+    const [created] = await get_db()
       .insert(bill_item)
       .values({ bill_id, ...item })
       .returning();
@@ -136,7 +139,7 @@ export const update_bill_item = form(
     metadata: v.optional(v.record(v.string(), v.any())),
   }),
   async (args) => {
-    const [updated] = await db
+    const [updated] = await get_db()
       .update(bill_item)
       .set(args satisfies Partial<typeof bill_item.$inferInsert>)
       .where(eq(bill_item.id, args.id))
@@ -150,6 +153,6 @@ export const delete_bill_item = command(
     id: v.string(),
   }),
   async ({ id }) => {
-    await db.delete(bill_item).where(eq(bill_item.id, id));
+    await get_db().delete(bill_item).where(eq(bill_item.id, id));
   }
 );

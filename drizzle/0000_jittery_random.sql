@@ -3,7 +3,7 @@ CREATE TYPE "CRUSHER"."delivery_slip_state" AS ENUM('pending', 'billed', 'discar
 CREATE TYPE "CRUSHER"."import_row_status" AS ENUM('pending', 'approved', 'skipped', 'saved', 'discarded', 'duplicate');--> statement-breakpoint
 CREATE TYPE "CRUSHER"."import_session_status" AS ENUM('mapping', 'processing', 'reviewing', 'completed', 'cancelled');--> statement-breakpoint
 CREATE TABLE "CRUSHER"."bill" (
-	"id" uuid PRIMARY KEY DEFAULT uuidv7() NOT NULL,
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"party_id" uuid NOT NULL,
 	"date_start" date NOT NULL,
 	"date_end" date NOT NULL,
@@ -13,7 +13,7 @@ CREATE TABLE "CRUSHER"."bill" (
 );
 --> statement-breakpoint
 CREATE TABLE "CRUSHER"."bill_item" (
-	"id" uuid PRIMARY KEY DEFAULT uuidv7() NOT NULL,
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"bill_id" uuid NOT NULL,
 	"type" "CRUSHER"."bill_item_type" NOT NULL,
 	"description" text,
@@ -30,7 +30,7 @@ CREATE TABLE "CRUSHER"."bill_item" (
 );
 --> statement-breakpoint
 CREATE TABLE "CRUSHER"."customer" (
-	"id" uuid PRIMARY KEY DEFAULT uuidv7() NOT NULL,
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"name" text NOT NULL,
 	"address" text,
 	"phone" text,
@@ -41,7 +41,7 @@ CREATE TABLE "CRUSHER"."customer" (
 );
 --> statement-breakpoint
 CREATE TABLE "CRUSHER"."delivery_slip" (
-	"id" uuid PRIMARY KEY DEFAULT uuidv7() NOT NULL,
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"date" date NOT NULL,
 	"party_id" uuid,
 	"vehicle_id" uuid,
@@ -58,7 +58,7 @@ CREATE TABLE "CRUSHER"."delivery_slip" (
 );
 --> statement-breakpoint
 CREATE TABLE "CRUSHER"."import_row" (
-	"id" uuid PRIMARY KEY DEFAULT uuidv7() NOT NULL,
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"session_id" uuid NOT NULL,
 	"row_index" integer NOT NULL,
 	"raw_data" jsonb NOT NULL,
@@ -78,7 +78,7 @@ CREATE TABLE "CRUSHER"."import_row" (
 );
 --> statement-breakpoint
 CREATE TABLE "CRUSHER"."import_session" (
-	"id" uuid PRIMARY KEY DEFAULT uuidv7() NOT NULL,
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"file_name" text NOT NULL,
 	"status" "CRUSHER"."import_session_status" DEFAULT 'mapping' NOT NULL,
 	"column_mapping" jsonb,
@@ -92,7 +92,7 @@ CREATE TABLE "CRUSHER"."import_session" (
 );
 --> statement-breakpoint
 CREATE TABLE "CRUSHER"."product" (
-	"id" uuid PRIMARY KEY DEFAULT uuidv7() NOT NULL,
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"name" text NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp DEFAULT now() NOT NULL,
@@ -100,7 +100,7 @@ CREATE TABLE "CRUSHER"."product" (
 );
 --> statement-breakpoint
 CREATE TABLE "CRUSHER"."receipt" (
-	"id" uuid PRIMARY KEY DEFAULT uuidv7() NOT NULL,
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"party_id" uuid NOT NULL,
 	"date" date NOT NULL,
 	"amount" numeric(10, 2) NOT NULL,
@@ -110,7 +110,7 @@ CREATE TABLE "CRUSHER"."receipt" (
 );
 --> statement-breakpoint
 CREATE TABLE "CRUSHER"."vehicle" (
-	"id" uuid PRIMARY KEY DEFAULT uuidv7() NOT NULL,
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"number_plate" text NOT NULL,
 	"vehicle_type" text,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,

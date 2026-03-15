@@ -1,4 +1,6 @@
 import { drizzle } from 'drizzle-orm/postgres-js';
+// import { drizzle } from 'drizzle-orm/neon-serverless';
+import { neon, Pool } from '@neondatabase/serverless';
 import { eq, sql } from 'drizzle-orm';
 import postgres from 'postgres';
 import { reset } from 'drizzle-seed';
@@ -15,10 +17,18 @@ import {
 } from './src/lib/server/db/schema/index';
 
 async function main() {
-  if (!process.env.DATABASE_URL) throw new Error('DATABASE_URL is not set');
+  if (!process.env.DATABASE_URL_DIRECT)
+    throw new Error('DATABASE_URL is not set');
 
-  const client = postgres(process.env.DATABASE_URL);
+  const client = postgres(process.env.DATABASE_URL_DIRECT);
   const db = drizzle(client);
+
+  // const client = await neon(process.env.DATABASE_URL_DIRECT);
+  // const db = drizzle({ client, schema });
+
+  // const client = neon(process.env.DATABASE_URL_DIRECT);
+  // const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+  // const db = drizzle({ client: pool });
 
   const tables = {
     customer,
@@ -41,6 +51,6 @@ async function main() {
 }
 
 main().catch((e) => {
-  console.error('Seed failed:', e);
+  console.error('Reset failed:', e);
   process.exit(1);
 });

@@ -20,6 +20,11 @@ export const full_date_formatter = new Intl.DateTimeFormat('en-IN', {
   year: 'numeric',
 });
 
+export const short_month_day_formatter = new Intl.DateTimeFormat('en-IN', {
+  month: 'short',
+  day: 'numeric',
+});
+
 export const short_date_formatter = new Intl.DateTimeFormat('en-IN', {
   month: 'short',
   day: '2-digit',

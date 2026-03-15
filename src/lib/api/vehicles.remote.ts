@@ -1,7 +1,7 @@
 import { asc, eq } from 'drizzle-orm';
 import * as v from 'valibot';
 import { query, form, command } from '$app/server';
-import { db } from '$lib/server/db';
+import { get_db } from '$lib/server/db';
 import { vehicle } from '$lib/server/db/schema';
 import { list_paginated } from '$lib/api/shared';
 import { create_list_query_validator } from '$lib/server/validation/query';
@@ -15,7 +15,7 @@ export const list_vehicles = query(
 );
 
 export const list_all_vehicles = query(async () => {
-  const vehicles = await db
+  const vehicles = await get_db()
     .select({
       id: vehicle.id,
       number_plate: vehicle.number_plate,
@@ -33,7 +33,7 @@ export const get_vehicle = query(
     id: v.string(),
   }),
   async ({ id }) => {
-    const vehicle_obj = await db
+    const vehicle_obj = await get_db()
       .select()
       .from(vehicle)
       .where(eq(vehicle.id, id))
@@ -49,9 +49,11 @@ export const create_vehicle = form(
     metadata: v.optional(v.record(v.string(), v.any())),
   }),
   async (args) => {
-    const vehicle_obj = await db.insert(vehicle).values({
-      ...args,
-    } satisfies typeof vehicle.$inferInsert);
+    const vehicle_obj = await get_db()
+      .insert(vehicle)
+      .values({
+        ...args,
+      } satisfies typeof vehicle.$inferInsert);
     return vehicle_obj;
   }
 );
@@ -65,7 +67,7 @@ export const bulk_create_vehicles = command(
     })
   ),
   async (args) => {
-    const vehicle_objs = await db
+    const vehicle_objs = await get_db()
       .insert(vehicle)
       .values(args satisfies (typeof vehicle.$inferInsert)[]);
     return vehicle_objs;
@@ -80,7 +82,7 @@ export const update_vehicle = form(
     metadata: v.optional(v.record(v.string(), v.any())),
   }),
   async (args) => {
-    const vehicle_obj = await db
+    const vehicle_obj = await get_db()
       .update(vehicle)
       .set(args satisfies Partial<typeof vehicle.$inferInsert>)
       .where(eq(vehicle.id, args.id))
@@ -94,6 +96,6 @@ export const delete_vehicle = command(
     id: v.string(),
   }),
   async ({ id }) => {
-    await db.delete(vehicle).where(eq(vehicle.id, id));
+    await get_db().delete(vehicle).where(eq(vehicle.id, id));
   }
 );

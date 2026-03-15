@@ -1,7 +1,7 @@
 import { eq } from 'drizzle-orm';
 import * as v from 'valibot';
 import { query, form, command } from '$app/server';
-import { db } from '$lib/server/db';
+import { get_db } from '$lib/server/db';
 import { product } from '$lib/server/db/schema';
 import { list_paginated } from '$lib/api/shared';
 import { create_list_query_validator } from '$lib/server/validation/query';
@@ -16,7 +16,7 @@ export const list_products = query(
 );
 
 export const list_all_products = query(async () => {
-  const products = await db
+  const products = await get_db()
     .select({
       id: product.id,
       name: product.name,
@@ -32,7 +32,7 @@ export const get_product = query(
     id: v.string(),
   }),
   async ({ id }) => {
-    const product_obj = await db
+    const product_obj = await get_db()
       .select()
       .from(product)
       .where(eq(product.id, id))
@@ -47,9 +47,11 @@ export const create_product = form(
     metadata: v.optional(v.record(v.string(), v.any())),
   }),
   async (args) => {
-    const product_obj = await db.insert(product).values({
-      ...args,
-    } satisfies typeof product.$inferInsert);
+    const product_obj = await get_db()
+      .insert(product)
+      .values({
+        ...args,
+      } satisfies typeof product.$inferInsert);
     return product_obj;
   }
 );
@@ -62,7 +64,7 @@ export const bulk_create_products = command(
     })
   ),
   async (args) => {
-    const product_objs = await db
+    const product_objs = await get_db()
       .insert(product)
       .values(args satisfies (typeof product.$inferInsert)[]);
     return product_objs;
@@ -76,7 +78,7 @@ export const update_product = form(
     metadata: v.optional(v.record(v.string(), v.any())),
   }),
   async (args) => {
-    const product_obj = await db
+    const product_obj = await get_db()
       .update(product)
       .set(args satisfies Partial<typeof product.$inferInsert>)
       .where(eq(product.id, args.id))
@@ -90,6 +92,6 @@ export const delete_product = command(
     id: v.string(),
   }),
   async ({ id }) => {
-    await db.delete(product).where(eq(product.id, id));
+    await get_db().delete(product).where(eq(product.id, id));
   }
 );

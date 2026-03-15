@@ -1,27 +1,132 @@
 <script lang="ts">
   import TrendingUpIcon from '@lucide/svelte/icons/trending-up';
-  import { cubicInOut } from 'svelte/easing';
+  import CalendarIcon from '@lucide/svelte/icons/calendar';
   import { scaleBand, scaleTime } from 'd3-scale';
-  // import { timeDay } from 'd3-time';
-  import { BarChart, Highlight, type ChartContextValue } from 'layerchart';
+  import { timeDay, timeMonth, timeYear } from 'd3-time';
+  import {
+    Axis,
+    BarChart,
+    Highlight,
+    Layer,
+    type ChartContextValue,
+  } from 'layerchart';
+  import { untrack } from 'svelte';
+  import { cubicInOut } from 'svelte/easing';
   import { get_delivery_count_by_products } from '$lib/api/delivery-slips.remote';
   import { Spinner } from '$lib/components/ui/spinner';
   import * as Card from '$lib/components/ui/card/index.js';
   import * as Chart from '$lib/components/ui/chart/index.js';
+  import LoadingState from '$lib/components/ui/loading/data.svelte';
+  import * as Popover from '$lib/components/ui/popover/index.js';
+  import { RangeCalendar } from '$lib/components/ui/range-calendar/index.js';
+  import { Button } from '$lib/components/ui/button/index.js';
+  import {
+    CalendarDate,
+    today,
+    getLocalTimeZone,
+    type DateValue,
+  } from '@internationalized/date';
+  import type { DateRange } from 'bits-ui';
   import {
     day_ordinal_formatter,
     full_month_formatter,
     year_formatter,
     full_date_formatter,
+    short_month_day_formatter,
     short_date_formatter,
   } from './utils';
+
+  type Props = {
+    initial_start_date?: string;
+    initial_end_date?: string;
+  };
+
+  const tz = getLocalTimeZone();
+  const today_date = today(tz);
+
+  const {
+    // initial_start_date = today_date.subtract({ months: 1 }).toString(),
+    // initial_end_date = today_date.toString(),
+    initial_start_date = '2025-06-01',
+    initial_end_date = '2025-08-31',
+  }: Props = $props();
+
+  const parse_date = (s: string): CalendarDate => {
+    const [y, m, d] = s.split('-').map(Number);
+    return new CalendarDate(y, m, d);
+  };
+
+  const PRESETS = [
+    {
+      label: 'Last 7 days',
+      start: today_date.subtract({ days: 6 }),
+      end: today_date,
+    },
+    {
+      label: 'Last 30 days',
+      start: today_date.subtract({ days: 29 }),
+      end: today_date,
+    },
+    {
+      label: 'Last 2 months',
+      start: today_date.subtract({ months: 2 }),
+      end: today_date,
+    },
+    {
+      label: 'Last 3 months',
+      start: today_date.subtract({ months: 3 }),
+      end: today_date,
+    },
+  ];
+
+  let selected_range = $state<DateRange>({
+    start: untrack(() => parse_date(initial_start_date)),
+    end: untrack(() => parse_date(initial_end_date)),
+  });
+
+  let popover_open = $state(false);
+
+  const to_date_string = (d: DateValue) =>
+    `${d.year}-${String(d.month).padStart(2, '0')}-${String(d.day).padStart(2, '0')}`;
+
+  const start_date = $derived(
+    selected_range.start
+      ? to_date_string(selected_range.start)
+      : initial_start_date
+  );
+  const end_date = $derived(
+    selected_range.end ? to_date_string(selected_range.end) : initial_end_date
+  );
+
+  const format_trigger_label = $derived.by(() => {
+    const { start, end } = selected_range;
+    if (!start) return 'Select date range';
+    const fmt = (d: DateValue) =>
+      new Intl.DateTimeFormat('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      }).format(new Date(d.year, d.month - 1, d.day));
+    return end ? `${fmt(start)} – ${fmt(end)}` : fmt(start);
+  });
+
+  function handle_range_change(range: DateRange | undefined) {
+    if (range?.start && range?.end) {
+      popover_open = false;
+    }
+  }
+
+  function apply_preset(preset: (typeof PRESETS)[number]) {
+    selected_range = { start: preset.start, end: preset.end };
+    popover_open = false;
+  }
 
   let context = $state<ChartContextValue>();
 
   const data_query = $derived(
     get_delivery_count_by_products({
-      start_date: '2026-01-01',
-      end_date: '2026-06-30',
+      start_date,
+      end_date,
     })
   );
 
@@ -74,81 +179,115 @@
       }
       entry[row.product.name] = row.count;
     }
-    return [...by_date.values()];
+    return [
+      ...by_date.values().map((entry) => ({
+        ...entry,
+        date: new Date(entry.date + 'T00:00:00'),
+      })),
+    ];
   });
 
-  const format_tooltip_date_label = (date: string) => {
-    const d = new Date(date + 'T00:00:00');
-    return full_date_formatter.format(d);
+  const format_tooltip_date_label = (date: Date) => {
+    return full_date_formatter.format(date);
   };
 
-  const format_x_axis_ticks = (date: string) => {
-    const d = new Date(date + 'T00:00:00');
-    return short_date_formatter.format(d);
+  const format_x_axis_ticks = (date: Date) => {
+    return short_month_day_formatter.format(date);
   };
 
   const starting_date = $derived.by(() => {
     let first_date = chart_data?.[0]?.date;
     if (!first_date) return '';
-    try {
-      const date = new Date(first_date + 'T00:00:00');
-      return `${day_ordinal_formatter(date.getDate())} ${full_month_formatter.format(date)} ${year_formatter.format(date)}`;
-    } catch (error) {
-      return '';
-    }
+    return `${day_ordinal_formatter(first_date.getDate())} ${full_month_formatter.format(first_date)} ${year_formatter.format(first_date)}`;
   });
   const last_date = $derived.by(() => {
     let last_date = chart_data?.[chart_data?.length - 1]?.date;
     if (!last_date) return '';
-    try {
-      const date = new Date(last_date + 'T00:00:00');
-      return `${day_ordinal_formatter(date.getDate())} ${full_month_formatter.format(date)} ${year_formatter.format(date)}`;
-    } catch (error) {
-      return '';
-    }
+    return `${day_ordinal_formatter(last_date.getDate())} ${full_month_formatter.format(last_date)} ${year_formatter.format(last_date)}`;
   });
 </script>
 
 <Card.Root class="col-span-3 w-full">
-  <Card.Header>
-    <Card.Title>
-      Deliveries
-      <span class="text-xs font-normal text-muted-foreground">by Products</span>
-    </Card.Title>
-    <Card.Description>
-      <span class="font-normal text-foreground/70">
-        {starting_date}
-      </span>
-      &mdash;
-      <span class="font-normal text-foreground/70">
-        {last_date}
-      </span>
-    </Card.Description>
+  <Card.Header class="flex flex-row items-start justify-between gap-4">
+    <div class="flex flex-col gap-1.5">
+      <Card.Title>
+        Deliveries
+        <span class="text-xs font-normal text-muted-foreground">
+          by Products
+        </span>
+      </Card.Title>
+      <Card.Description>
+        <span class="font-normal text-foreground/70">
+          {starting_date}
+        </span>
+        &mdash;
+        <span class="font-normal text-foreground/70">
+          {last_date}
+        </span>
+      </Card.Description>
+    </div>
+
+    <Popover.Root bind:open={popover_open}>
+      <Popover.Trigger>
+        {#snippet child({ props })}
+          <Button
+            {...props}
+            variant="outline"
+            size="sm"
+            class="h-8 gap-1.5 text-xs font-normal"
+          >
+            <CalendarIcon class="size-3.5 shrink-0" />
+            {format_trigger_label}
+          </Button>
+        {/snippet}
+      </Popover.Trigger>
+      <Popover.Portal>
+        <Popover.Content class="w-auto p-0" align="end">
+          <div class="flex">
+            <div class="flex flex-col gap-1 border-r p-3">
+              {#each PRESETS as preset (preset.label)}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  class="h-8 justify-start text-xs"
+                  onclick={() => apply_preset(preset)}
+                >
+                  {preset.label}
+                </Button>
+              {/each}
+            </div>
+            <RangeCalendar
+              bind:value={selected_range}
+              onValueChange={handle_range_change}
+              numberOfMonths={2}
+              minDays={7}
+              maxDays={92}
+            />
+          </div>
+        </Popover.Content>
+      </Popover.Portal>
+    </Popover.Root>
   </Card.Header>
-  <Card.Content class="w-full">
+  <Card.Content class="h-72 w-full">
     {#if data_query.loading}
-      <div
-        class="flex h-full w-full flex-col items-center justify-center gap-2"
-      >
-        <Spinner class="size-4 animate-spin" />
-        Loading data...
-      </div>
+      <LoadingState />
     {:else if data_query.error}
       <div class="flex w-full items-center justify-center">
         <p class="text-sm text-muted-foreground">Failed to load data</p>
       </div>
     {:else}
-      <Chart.Container config={chart_config} class="aspect-auto h-72">
+      <Chart.Container config={chart_config} class="aspect-auto h-full">
         <BarChart
           bind:context
           data={chart_data}
-          xScale={scaleBand().padding(0.1)}
+          // xScale={scaleBand().padding(0.1)}
+          xScale={scaleTime()}
           x="date"
           axis="x"
-          brush
           rule={false}
           {series}
           seriesLayout="stack"
+          xInterval={timeDay}
           props={{
             bars: {
               initialY: context?.height,
@@ -157,12 +296,16 @@
                 y: { type: 'tween', duration: 500, easing: cubicInOut },
                 height: { type: 'tween', duration: 500, easing: cubicInOut },
               },
+              rounded: 'all',
             },
             highlight: { area: false },
             xAxis: {
               format: format_x_axis_ticks,
-              ticks: (scale) =>
-                scaleTime(scale.domain(), scale.range()).ticks(),
+              // ticks(scale) {
+              //   return scaleTime(scale.domain(), scale.range()).ticks(7);
+              // },
+              rule: true,
+              tickMultiline: true,
             },
           }}
           legend
@@ -173,6 +316,25 @@
 
           {#snippet tooltip()}
             <Chart.Tooltip labelFormatter={format_tooltip_date_label} />
+          {/snippet}
+          {#snippet aboveContext({ context })}
+            <Layer type="svg">
+              <Axis
+                placement="bottom"
+                tickMultiline
+                ticks={{
+                  interval: timeMonth.every(3),
+                }}
+                tickLabelProps={{
+                  offset: 50,
+                }}
+                format={(d) =>
+                  'Q' +
+                  (d.getMonth() / 3 + 1) +
+                  (d.getMonth() === 0 ? '\n' + d.getFullYear() : '')}
+                rule={false}
+              />
+            </Layer>
           {/snippet}
         </BarChart>
       </Chart.Container>
@@ -185,7 +347,7 @@
           Deliveries by product <TrendingUpIcon class="size-4" />
         </div>
         <div class="flex items-center gap-2 leading-none text-muted-foreground">
-          Showing delivery counts for last 6 months
+          Showing delivery counts for selected date range
         </div>
       </div>
     </div>

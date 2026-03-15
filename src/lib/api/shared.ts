@@ -1,6 +1,6 @@
 import { and, desc, asc, sql, type SQL } from 'drizzle-orm';
 import type { PgTable, TableConfig } from 'drizzle-orm/pg-core';
-import { db } from '$lib/server/db';
+import { get_db } from '$lib/server/db';
 import type {
   ListQueryParams,
   CrusherTable,
@@ -36,7 +36,7 @@ export async function list_paginated<T extends CrusherTable>(
     params: options,
   });
 
-  const qb = db
+  const qb = get_db()
     .select()
     .from(table as PgTable<TableConfig>)
     .$dynamic()

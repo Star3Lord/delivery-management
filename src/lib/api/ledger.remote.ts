@@ -1,7 +1,7 @@
 import { eq, and, gte, lte, sql, desc, type SQL } from 'drizzle-orm';
 import * as v from 'valibot';
 import { query } from '$app/server';
-import { db } from '$lib/server/db';
+import { get_db } from '$lib/server/db';
 import { bill, bill_item, receipt, customer } from '$lib/server/db/schema';
 
 const ledger_validator = v.object({
@@ -14,6 +14,8 @@ const ledger_validator = v.object({
 
 export const get_ledger_entries = query(ledger_validator, async (args) => {
   const { party_id, from, to, limit = 50, offset = 0 } = args;
+
+  const db = get_db();
 
   const ledger = db.$with('ledger').as(
     db

@@ -5,7 +5,7 @@ import { customer } from './parties';
 
 export const product = crusher_schema.table('product', {
   id: uuid('id')
-    .default(sql`uuidv7()`)
+    .default(sql`gen_random_uuid()`)
     .primaryKey(),
   name: text('name').notNull(),
   ...timestamps,
@@ -14,7 +14,7 @@ export const product = crusher_schema.table('product', {
 
 export const vehicle = crusher_schema.table('vehicle', {
   id: uuid('id')
-    .default(sql`uuidv7()`)
+    .default(sql`gen_random_uuid()`)
     .primaryKey(),
   number_plate: text('number_plate').notNull(),
   vehicle_type: text('vehicle_type'),
@@ -32,7 +32,7 @@ export const delivery_slip = crusher_schema.table(
   'delivery_slip',
   {
     id: uuid('id')
-      .default(sql`uuidv7()`)
+      .default(sql`gen_random_uuid()`)
       .primaryKey(),
     date: date('date').notNull(),
     party_id: uuid('party_id').references(() => customer.id),
